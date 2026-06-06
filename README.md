@@ -1,6 +1,6 @@
 # AttendSecure
 
-> CCS final project (look at the `system-overview.md`)
+CCS final project (please look at the `system-overview.md`)
 
 # Tech Stack
 
