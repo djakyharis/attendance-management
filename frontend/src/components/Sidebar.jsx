@@ -41,10 +41,6 @@ export default function Sidebar() {
         {/* Admin Only */}
         {role === 'super-admin' && (
           <>
-            <Link to="/team" className={`px-4 py-3 flex items-center gap-3 transition-all duration-150 ease-in-out ${isActive('/team')}`}>
-              <span className="material-symbols-outlined">group</span>
-              Team Management
-            </Link>
             <Link to="/security" className={`px-4 py-3 flex items-center gap-3 transition-all duration-150 ease-in-out ${isActive('/security')}`}>
               <span className="material-symbols-outlined">security</span>
               Security Logs
@@ -54,10 +50,16 @@ export default function Sidebar() {
 
         {/* Manager & Admin */}
         {(role === 'super-admin' || role === 'manager') && (
-          <Link to="/reports" className={`px-4 py-3 flex items-center gap-3 transition-all duration-150 ease-in-out ${isActive('/reports')}`}>
-            <span className="material-symbols-outlined">analytics</span>
-            Reports
-          </Link>
+          <>
+            <Link to="/team" className={`px-4 py-3 flex items-center gap-3 transition-all duration-150 ease-in-out ${isActive('/team')}`}>
+              <span className="material-symbols-outlined">group</span>
+              Team Management
+            </Link>
+            <Link to="/reports" className={`px-4 py-3 flex items-center gap-3 transition-all duration-150 ease-in-out ${isActive('/reports')}`}>
+              <span className="material-symbols-outlined">analytics</span>
+              Reports
+            </Link>
+          </>
         )}
       </nav>
 

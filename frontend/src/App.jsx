@@ -5,6 +5,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import EmployeeAttendance from './pages/EmployeeAttendance';
 import ManagerAttendance from './pages/ManagerAttendance';
 import AdminTeam from './pages/AdminTeam';
+import ManagerTeam from './pages/ManagerTeam';
 import UnderConstruction from './pages/UnderConstruction';
 import Login from './pages/Login';
 import ManagerReports from './pages/ManagerReports';
@@ -39,6 +40,15 @@ function ReportsRouter() {
   return <Navigate to="/dashboard" replace />;
 }
 
+// Dynamic Router for Team based on Role
+function TeamRouter() {
+  const { role, loading } = useAuth();
+  if (loading) return null;
+  if (role === 'super-admin') return <AdminTeam />;
+  if (role === 'manager') return <ManagerTeam />;
+  return <Navigate to="/dashboard" replace />;
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -53,7 +63,7 @@ function App() {
         
         {/* Modules */}
         <Route path="/attendance" element={<AttendanceRouter />} />
-        <Route path="/team" element={<AdminTeam />} />
+        <Route path="/team" element={<TeamRouter />} />
         <Route path="/security" element={<UnderConstruction title="Security Logs" />} />
         <Route path="/reports" element={<ReportsRouter />} />
         

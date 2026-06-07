@@ -1,15 +1,29 @@
 export default function AttendanceTable({ viewMode = 'employee' }) {
-  const isManager = viewMode === 'manager';
+  const showEmployee = viewMode === 'manager' || viewMode === 'admin';
+  const isAdmin = viewMode === 'admin';
 
-  const mockLogs = isManager ? [
-    { id: 1, name: 'Alice Smith', role: 'Frontend Dev', time: '2026-06-07 08:55:12', ip: '192.168.1.104', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=alice' },
-    { id: 2, name: 'Bob Johnson', role: 'Backend Dev', time: '2026-06-07 08:58:22', ip: '192.168.1.105', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=bob' },
-    { id: 3, name: 'Charlie Lee', role: 'DevOps', time: '2026-06-07 09:05:01', ip: '10.0.0.45', status: 'Forbidden', proofUrl: null }
-  ] : [
-    { id: 1, time: '2026-06-07 08:55:12', ip: '192.168.1.104', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=current' },
-    { id: 2, time: '2026-06-06 08:52:45', ip: '192.168.1.104', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=current' },
-    { id: 3, time: '2026-06-05 08:45:01', ip: '10.0.0.45', status: 'Forbidden', proofUrl: null }
-  ];
+  let mockLogs = [];
+  
+  if (isAdmin) {
+    mockLogs = [
+      { id: 1, name: 'Alice Smith', dept: 'ENGINEERING', time: '2026-06-07 08:55:12', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=alice' },
+      { id: 2, name: 'David Chen', dept: 'SALES', time: '2026-06-07 08:58:22', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=david' },
+      { id: 3, name: 'Charlie Lee', dept: 'ENGINEERING', time: '2026-06-07 09:05:01', status: 'Forbidden', proofUrl: null },
+      { id: 4, name: 'Emma Watson', dept: 'HR', time: '2026-06-07 09:12:45', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=emma' }
+    ];
+  } else if (viewMode === 'manager') {
+    mockLogs = [
+      { id: 1, name: 'Alice Smith', time: '2026-06-07 08:55:12', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=alice' },
+      { id: 2, name: 'Bob Johnson', time: '2026-06-07 08:58:22', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=bob' },
+      { id: 3, name: 'Charlie Lee', time: '2026-06-07 09:05:01', status: 'Forbidden', proofUrl: null }
+    ];
+  } else {
+    mockLogs = [
+      { id: 1, time: '2026-06-07 08:55:12', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=current' },
+      { id: 2, time: '2026-06-06 08:52:45', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=current' },
+      { id: 3, time: '2026-06-05 08:45:01', status: 'Forbidden', proofUrl: null }
+    ];
+  }
 
   return (
     <div className="bg-surface-container border border-outline-variant rounded p-1 overflow-x-auto">
@@ -18,7 +32,8 @@ export default function AttendanceTable({ viewMode = 'employee' }) {
           <thead>
             <tr className="border-b border-outline-variant text-on-surface-variant font-label-md text-label-md uppercase">
               <th className="py-3 px-4 font-normal">Date / Time</th>
-              {isManager && <th className="py-3 px-4 font-normal">Employee</th>}
+              {showEmployee && <th className="py-3 px-4 font-normal">Employee</th>}
+              {isAdmin && <th className="py-3 px-4 font-normal">Department</th>}
               <th className="py-3 px-4 font-normal">Proof</th>
               <th className="py-3 px-4 font-normal">Status</th>
             </tr>
@@ -27,9 +42,14 @@ export default function AttendanceTable({ viewMode = 'employee' }) {
             {mockLogs.map((log) => (
               <tr key={log.id} className={`hover:bg-surface-variant/50 transition-colors ${log.status === 'Forbidden' ? 'bg-error-container/10' : ''}`}>
                 <td className="py-3 px-4 font-code-inline text-on-surface">{log.time}</td>
-                {isManager && (
+                {showEmployee && (
                   <td className="py-3 px-4">
                     <div className="font-label-md text-on-surface uppercase">{log.name}</div>
+                  </td>
+                )}
+                {isAdmin && (
+                  <td className="py-3 px-4">
+                    <span className="text-[10px] bg-surface-variant text-on-surface-variant px-2 py-1 rounded tracking-widest uppercase font-bold">{log.dept}</span>
                   </td>
                 )}
                 <td className="py-3 px-4">

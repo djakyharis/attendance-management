@@ -1,6 +1,7 @@
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import AttendanceTable from '../components/AttendanceTable';
 
 export default function AdminDashboard() {
   return (
@@ -46,6 +47,15 @@ export default function AdminDashboard() {
                 <p className="font-headline-lg text-[48px] leading-none font-bold text-error">12</p>
                 <p className="font-code-inline text-sm text-error/70 mt-2">Awaiting approval</p>
               </div>
+                </div>
+              
+              <div className="mt-8">
+                <h2 className="font-headline-md text-headline-md text-primary tracking-tight mb-2 flex items-center gap-2">
+                  <span className="material-symbols-outlined">public</span>
+                  Global Verification Logs
+                </h2>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">&gt; fetch logs --scope=all_departments --limit=100</p>
+                <AttendanceTable viewMode="admin" />
               </div>
             </div>
           </div>
