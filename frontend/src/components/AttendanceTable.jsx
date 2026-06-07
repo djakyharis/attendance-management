@@ -1,4 +1,4 @@
-export default function AttendanceTable({ viewMode = 'employee' }) {
+export default function AttendanceTable({ viewMode = 'employee', departmentFilter = 'ALL' }) {
   const showEmployee = viewMode === 'manager' || viewMode === 'admin';
   const isAdmin = viewMode === 'admin';
 
@@ -11,6 +11,10 @@ export default function AttendanceTable({ viewMode = 'employee' }) {
       { id: 3, name: 'Charlie Lee', dept: 'ENGINEERING', time: '2026-06-07 09:05:01', status: 'Forbidden', proofUrl: null },
       { id: 4, name: 'Emma Watson', dept: 'HR', time: '2026-06-07 09:12:45', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=emma' }
     ];
+
+    if (departmentFilter !== 'ALL') {
+      mockLogs = mockLogs.filter(log => log.dept === departmentFilter);
+    }
   } else if (viewMode === 'manager') {
     mockLogs = [
       { id: 1, name: 'Alice Smith', time: '2026-06-07 08:55:12', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=alice' },

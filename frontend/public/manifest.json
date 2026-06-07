@@ -1,0 +1,21 @@
+{
+  "short_name": "AttendSecure",
+  "name": "AttendSecure Identity System",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "terminal.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#121212",
+  "background_color": "#121212"
+}

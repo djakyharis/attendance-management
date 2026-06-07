@@ -1,9 +1,24 @@
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 export default function Sidebar() {
   const { role } = useAuth();
   const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const handleToggle = () => setIsOpen(prev => !prev);
+    const closeSidebar = () => setIsOpen(false);
+    
+    window.addEventListener('toggleSidebar', handleToggle);
+    return () => window.removeEventListener('toggleSidebar', handleToggle);
+  }, []);
+
+  // Close sidebar on route change
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname]);
 
   const isActive = (path) => {
     return location.pathname === path 
@@ -14,7 +29,16 @@ export default function Sidebar() {
   const dashboardPath = role === 'super-admin' ? '/admin' : role === 'manager' ? '/manager' : '/employee';
 
   return (
-    <aside className="hidden md:flex flex-col h-screen w-64 left-0 top-0 bg-surface-container-low text-primary font-label-md text-label-md border-r border-outline-variant py-gutter sticky">
+    <>
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+      
+      <aside className={`fixed md:sticky top-0 left-0 h-screen w-64 bg-surface-container-low text-primary font-label-md text-label-md border-r border-outline-variant py-gutter z-50 flex flex-col transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       {/* Logo */}
       <div className="px-4 mb-8 pt-2">
         <h1 className="font-headline-md text-headline-md font-bold text-primary flex items-center gap-2">
@@ -68,5 +92,6 @@ export default function Sidebar() {
         {/* Terminate session moved to header */}
       </div>
     </aside>
+    </>
   );
 }
