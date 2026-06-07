@@ -5,8 +5,19 @@ import Footer from '../components/Footer';
 
 export default function AdminTeam() {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedDept, setSelectedDept] = useState('ALL');
   const [formData, setFormData] = useState({ fullName: '', email: '', userId: '', password: '', department: 'ENGINEERING', role: 'EMPLOYEE' });
   const [notification, setNotification] = useState(null);
+
+  const mockUsers = [
+    { id: 'USR-001', name: 'John Doe', dept: 'ENGINEERING', role: 'MANAGER' },
+    { id: 'USR-002', name: 'Jane Smith', dept: 'ENGINEERING', role: 'EMPLOYEE' },
+    { id: 'USR-003', name: 'Alice Lee', dept: 'HR', role: 'MANAGER' },
+    { id: 'USR-004', name: 'Bob Chen', dept: 'SALES', role: 'EMPLOYEE' },
+    { id: 'USR-005', name: 'Eva Green', dept: 'PRODUCT', role: 'MANAGER' },
+  ];
+
+  const filteredUsers = selectedDept === 'ALL' ? mockUsers : mockUsers.filter(u => u.dept === selectedDept);
 
   const handleCreateUser = (e) => {
     e.preventDefault();
@@ -30,13 +41,13 @@ export default function AdminTeam() {
             
             {/* Create User Modal */}
             {showCreateModal && (
-              <div className="absolute inset-0 bg-surface/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="fixed inset-0 bg-surface/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
                 <div className="bg-surface-container border border-outline-variant shadow-[0_0_20px_rgba(203,166,247,0.15)] rounded w-full max-w-md overflow-hidden relative">
                   
                   {/* Modal Header */}
-                  <div className="bg-surface-container-high px-6 py-4 border-b border-outline-variant flex items-center justify-between">
-                    <h2 className="font-headline-md text-headline-md text-primary tracking-tight">ADD_USER_PROTOCOL</h2>
-                    <button onClick={() => setShowCreateModal(false)} className="text-on-surface-variant hover:text-primary transition-colors">
+                  <div className="bg-surface-container-high px-6 py-4 border-b border-outline-variant flex items-center justify-center relative">
+                    <h2 className="font-headline-md text-headline-md text-primary tracking-tight text-center">ADD_USER_PROTOCOL</h2>
+                    <button onClick={() => setShowCreateModal(false)} className="text-on-surface-variant hover:text-primary transition-colors absolute right-6">
                       <span className="material-symbols-outlined">close</span>
                     </button>
                   </div>
@@ -108,11 +119,27 @@ export default function AdminTeam() {
             </header>
             
             <div className="bg-surface-container border border-outline-variant rounded p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest flex items-center gap-2">
-                  <span className="material-symbols-outlined">folder_shared</span>
-                  User Directory
-                </h3>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div className="flex items-center gap-4">
+                  <h3 className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest flex items-center gap-2">
+                    <span className="material-symbols-outlined">folder_shared</span>
+                    User Directory
+                  </h3>
+                  <div className="relative border border-outline-variant rounded bg-surface-container-highest">
+                    <select 
+                      value={selectedDept} 
+                      onChange={e => setSelectedDept(e.target.value)}
+                      className="bg-transparent appearance-none pl-3 pr-8 py-1.5 text-on-surface font-code-inline text-sm focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer w-[180px]"
+                    >
+                      <option value="ALL">ALL DEPARTMENTS</option>
+                      <option value="ENGINEERING">ENGINEERING</option>
+                      <option value="SALES">SALES</option>
+                      <option value="HR">HR</option>
+                      <option value="PRODUCT">PRODUCT</option>
+                    </select>
+                    <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[16px] text-on-surface-variant pointer-events-none">expand_more</span>
+                  </div>
+                </div>
                 <button onClick={() => setShowCreateModal(true)} className="bg-primary text-on-primary px-4 py-2 font-label-md text-label-md uppercase tracking-wider flex items-center gap-2 hover:bg-primary-fixed transition-colors rounded">
                   <span className="material-symbols-outlined text-[18px]">person_add</span>
                   Create New User
@@ -131,24 +158,28 @@ export default function AdminTeam() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/50">
-                    <tr className="hover:bg-surface-variant/50 transition-colors">
-                      <td className="py-3 px-4 font-code-inline text-on-surface">USR-001</td>
-                      <td className="py-3 px-4 text-on-surface">John Doe</td>
-                      <td className="py-3 px-4 text-on-surface-variant">ENGINEERING</td>
-                      <td className="py-3 px-4"><span className="text-tertiary">MANAGER</span></td>
-                      <td className="py-3 px-4 text-right">
-                        <button className="text-error hover:text-error-container"><span className="material-symbols-outlined">block</span></button>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-surface-variant/50 transition-colors">
-                      <td className="py-3 px-4 font-code-inline text-on-surface">USR-002</td>
-                      <td className="py-3 px-4 text-on-surface">Jane Smith</td>
-                      <td className="py-3 px-4 text-on-surface-variant">ENGINEERING</td>
-                      <td className="py-3 px-4"><span className="text-on-surface">EMPLOYEE</span></td>
-                      <td className="py-3 px-4 text-right">
-                        <button className="text-error hover:text-error-container"><span className="material-symbols-outlined">block</span></button>
-                      </td>
-                    </tr>
+                    {filteredUsers.length > 0 ? (
+                      filteredUsers.map((u) => (
+                        <tr key={u.id} className="hover:bg-surface-variant/50 transition-colors">
+                          <td className="py-3 px-4 font-code-inline text-on-surface">{u.id}</td>
+                          <td className="py-3 px-4 text-on-surface">{u.name}</td>
+                          <td className="py-3 px-4 text-on-surface-variant">{u.dept}</td>
+                          <td className="py-3 px-4">
+                            <span className={u.role === 'MANAGER' ? 'text-tertiary' : 'text-on-surface'}>{u.role}</span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <button className="text-error hover:text-error-container" title="Block User"><span className="material-symbols-outlined">block</span></button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="5" className="py-8 text-center text-on-surface-variant font-code-inline">
+                          <span className="material-symbols-outlined text-[32px] mb-2 block opacity-50">search_off</span>
+                          No users found in this department.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
                 </div>
