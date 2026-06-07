@@ -113,23 +113,13 @@ export default function ManagerDashboard() {
                 </div>
               </div>
               
-              {/* Terminal-style Progress Bar */}
-              <div className="w-full h-10 bg-surface-container-highest border border-outline-variant rounded overflow-hidden relative">
-                {/* Background Grid Pattern for the empty part */}
-                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(90deg, #968e9a 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-                
+              {/* Simple Progress Bar */}
+              <div className="w-full h-6 bg-surface-container-highest rounded overflow-hidden relative">
                 {/* The Filled Progress */}
                 <div 
-                  className="h-full bg-primary border-r border-primary relative transition-all duration-1000 ease-out"
+                  className="h-full bg-primary transition-all duration-1000 ease-out"
                   style={{ width: `${attendanceRate}%` }}
                 >
-                </div>
-                
-                {/* Target Marker Line */}
-                <div className="absolute top-0 bottom-0 w-[2px] bg-tertiary z-10" style={{ left: '95%' }}>
-                   <div className="absolute -top-6 -translate-x-1/2 text-tertiary">
-                     <span className="material-symbols-outlined text-[14px]">flag</span>
-                   </div>
                 </div>
               </div>
               
@@ -147,7 +137,7 @@ export default function ManagerDashboard() {
                 Department Verification Logs
               </h2>
               <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">&gt; fetch logs --dept={departmentName} --limit=50</p>
-              <AttendanceTable />
+              <AttendanceTable viewMode="manager" />
             </div>
             
             </div>

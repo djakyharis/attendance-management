@@ -6,10 +6,13 @@ export default function Login() {
   const [accessKeyFocus, setAccessKeyFocus] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = (e) => {
     e.preventDefault();
+    setError('');
+    
     const emailLower = email.toLowerCase();
     
     // Simple mock routing logic
@@ -19,9 +22,11 @@ export default function Login() {
     } else if (emailLower.startsWith('manager')) {
       localStorage.setItem('mockRole', 'manager');
       navigate('/manager');
-    } else {
+    } else if (emailLower.startsWith('employee')) {
       localStorage.setItem('mockRole', 'employee');
       navigate('/employee');
+    } else {
+      setError('ERR: Authentication failed. Invalid USER_ID or ACCESS_KEY.');
     }
   };
 
@@ -56,6 +61,13 @@ export default function Login() {
           <div className="p-6 md:p-8 space-y-6">
             <div className="space-y-4">
               <p className="font-code-inline text-code-inline text-on-surface-variant">System ready. Awaiting authentication.</p>
+
+              {error && (
+                <div className="bg-error/10 border border-error text-error px-4 py-3 rounded font-code-inline text-sm flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">warning</span>
+                  {error}
+                </div>
+              )}
 
               {/* Form */}
               <form className="space-y-6" onSubmit={handleLogin}>

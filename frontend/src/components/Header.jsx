@@ -40,10 +40,10 @@ export default function Header() {
           <div className="text-right hidden sm:block">
             <p className="font-code-inline text-code-inline text-primary leading-none mb-1">{user?.username ? user.username.toUpperCase() : 'JOHN DOE'}</p>
             <p className="text-[10px] uppercase tracking-widest text-secondary flex items-center justify-end gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> {user?.userId || '5070523'} | {department || 'IT'}
+              {user?.userId || '5070523'} | {department || 'IT'}
             </p>
           </div>
-          <button 
+          <button
             className="w-10 h-10 rounded bg-surface-container-highest border border-outline-variant flex items-center justify-center overflow-hidden hover:border-primary transition-colors cursor-pointer"
             onClick={() => setShowProfileMenu(!showProfileMenu)}
           >
@@ -54,10 +54,10 @@ export default function Header() {
           {showProfileMenu && (
             <div className="absolute top-14 right-0 w-48 bg-surface-container-high border border-outline-variant rounded shadow-[0_0_15px_rgba(0,0,0,0.5)] z-50 overflow-hidden">
               <div className="p-3 border-b border-outline-variant sm:hidden">
-                 <p className="font-code-inline text-code-inline text-primary">{user?.username ? user.username.toUpperCase() : 'JOHN DOE'}</p>
-                 <p className="text-[10px] uppercase tracking-widest text-secondary mt-1">{user?.userId || '5070523'} | {department || 'IT'}</p>
+                <p className="font-code-inline text-code-inline text-primary">{user?.username ? user.username.toUpperCase() : 'JOHN DOE'}</p>
+                <p className="text-[10px] uppercase tracking-widest text-secondary mt-1">{user?.userId || '5070523'} | {department || 'IT'}</p>
               </div>
-              <button 
+              <button
                 onClick={handleLogout}
                 className="w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-error/10 text-error transition-colors font-label-md text-label-md uppercase tracking-widest cursor-pointer"
               >
