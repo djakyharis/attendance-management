@@ -2,10 +2,13 @@ import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import AttendanceTable from '../components/AttendanceTable';
+import { useAuth } from '../hooks/useAuth';
 
 export default function ManagerDashboard() {
+  const { user, department, role } = useAuth();
+
   // Mock data for the manager view
-  const departmentName = "ENGINEERING";
+  const departmentName = department || "ENGINEERING";
   const totalHeadcount = 42;
   const presentToday = 35;
   const pending = 7;
@@ -24,52 +27,72 @@ export default function ManagerDashboard() {
               <p className="font-body-sm text-body-sm text-on-surface-variant">&gt; query_dept_stats --dept={departmentName} --live</p>
             </header>
             
-            {/* Stat Cards Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter mb-gutter">
-              {/* Stat Card 1: Total Headcount */}
-              <div className="bg-surface-container border border-outline-variant rounded p-6 hover:border-outline transition-colors">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px]">groups</span>
-                    Total Headcount
-                  </h3>
-                </div>
-                <div className="flex items-end gap-3">
-                  <p className="font-headline-lg text-[48px] leading-none font-bold text-on-surface">{totalHeadcount}</p>
-                  <p className="font-code-inline text-sm text-on-surface-variant mb-1">Personnel</p>
-                </div>
-              </div>
-
-              {/* Stat Card 2: Present Today */}
-              <div className="bg-surface-container border border-tertiary/30 rounded p-6 relative overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-tertiary/5 to-transparent w-full h-[20%] opacity-0 group-hover:opacity-100 group-hover:animate-scan pointer-events-none z-10"></div>
-                <div className="flex items-center justify-between mb-4 relative z-20">
-                  <h3 className="font-label-md text-label-md text-tertiary uppercase tracking-widest flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px]">how_to_reg</span>
-                    Present Today
-                  </h3>
-                </div>
-                <div className="flex items-end gap-3 relative z-20">
-                  <p className="font-headline-lg text-[48px] leading-none font-bold text-tertiary">{presentToday}</p>
-                  <p className="font-code-inline text-sm text-tertiary/70 mb-1 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px]">check_circle</span> Verified
-                  </p>
+            {/* Top Row: Profile Panel & Stat Cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter mb-gutter">
+              {/* Profile Panel */}
+              <div className="lg:col-span-3 flex flex-col gap-gutter">
+                <div className="bg-surface-container border border-outline-variant rounded p-6 flex flex-col items-center text-center h-full justify-center">
+                  <div className="w-16 h-16 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center mb-4">
+                    <span className="material-symbols-outlined text-[32px] text-primary">account_circle</span>
+                  </div>
+                  <div className="mb-4 w-full">
+                    <p className="font-headline-md text-headline-md text-primary font-bold leading-tight mb-1">{user?.username ? user.username.toUpperCase() : 'JANE MANAGER'}</p>
+                    <p className="font-code-inline text-code-inline text-secondary mb-3">{user?.userId || 'M-80234'}</p>
+                    <div className="flex justify-center gap-2 flex-wrap">
+                      <span className="bg-surface-variant text-on-surface px-2 py-1 rounded text-[10px] uppercase tracking-widest font-bold">{departmentName}</span>
+                      <span className="bg-primary/10 border border-primary/30 text-primary px-2 py-1 rounded text-[10px] uppercase tracking-widest font-bold">{role || 'MANAGER'}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Stat Card 3: Pending/Absent */}
-              <div className="bg-surface-container border border-error/30 rounded p-6 relative overflow-hidden">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-label-md text-label-md text-error uppercase tracking-widest flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px]">pending_actions</span>
-                    Pending / Absent
-                  </h3>
+              {/* Stat Cards */}
+              <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-3 gap-gutter">
+                {/* Stat Card 1: Total Headcount */}
+                <div className="bg-surface-container border border-outline-variant rounded p-6 hover:border-outline transition-colors flex flex-col justify-center">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px]">groups</span>
+                      Total Headcount
+                    </h3>
+                  </div>
+                  <div className="flex items-end gap-3">
+                    <p className="font-headline-lg text-[48px] leading-none font-bold text-on-surface">{totalHeadcount}</p>
+                    <p className="font-code-inline text-sm text-on-surface-variant mb-1">Personnel</p>
+                  </div>
                 </div>
-                <div className="flex items-end gap-3">
-                  <p className="font-headline-lg text-[48px] leading-none font-bold text-error">{pending}</p>
-                  <p className="font-code-inline text-sm text-error/70 mb-1 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px]">warning</span> Action Req.
-                  </p>
+
+                {/* Stat Card 2: Present Today */}
+                <div className="bg-surface-container border border-tertiary/30 rounded p-6 relative overflow-hidden group flex flex-col justify-center">
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-tertiary/5 to-transparent w-full h-[20%] opacity-0 group-hover:opacity-100 group-hover:animate-scan pointer-events-none z-10"></div>
+                  <div className="flex items-center justify-between mb-4 relative z-20">
+                    <h3 className="font-label-md text-label-md text-tertiary uppercase tracking-widest flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px]">how_to_reg</span>
+                      Present Today
+                    </h3>
+                  </div>
+                  <div className="flex items-end gap-3 relative z-20">
+                    <p className="font-headline-lg text-[48px] leading-none font-bold text-tertiary">{presentToday}</p>
+                    <p className="font-code-inline text-sm text-tertiary/70 mb-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[16px]">check_circle</span> Verified
+                    </p>
+                  </div>
+                </div>
+
+                {/* Stat Card 3: Pending/Absent */}
+                <div className="bg-surface-container border border-error/30 rounded p-6 relative overflow-hidden flex flex-col justify-center">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-label-md text-label-md text-error uppercase tracking-widest flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px]">pending_actions</span>
+                      Pending / Absent
+                    </h3>
+                  </div>
+                  <div className="flex items-end gap-3">
+                    <p className="font-headline-lg text-[48px] leading-none font-bold text-error">{pending}</p>
+                    <p className="font-code-inline text-sm text-error/70 mb-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[16px]">warning</span> Action Req.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -97,16 +120,9 @@ export default function ManagerDashboard() {
                 
                 {/* The Filled Progress */}
                 <div 
-                  className="h-full bg-primary/20 border-r border-primary relative transition-all duration-1000 ease-out flex flex-col justify-center overflow-hidden"
+                  className="h-full bg-primary border-r border-primary relative transition-all duration-1000 ease-out"
                   style={{ width: `${attendanceRate}%` }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent to-primary/40"></div>
-                  
-                  {/* Stripe pattern overlaid on the fill for a tech look */}
-                  <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(226, 199, 255, 0.5) 10px, rgba(226, 199, 255, 0.5) 20px)' }}></div>
-                  
-                  {/* Glowing vertical bar sweeping across */}
-                  <div className="absolute top-0 bottom-0 w-4 bg-primary/80 blur-[4px]" style={{ animation: 'scanline-horizontal 2.5s ease-in-out infinite' }}></div>
                 </div>
                 
                 {/* Target Marker Line */}
@@ -139,16 +155,6 @@ export default function ManagerDashboard() {
           <Footer />
         </div>
       </main>
-      
-      {/* Inject custom horizontal scanline animation for the progress bar */}
-      <style>{`
-        @keyframes scanline-horizontal {
-          0% { left: -10%; opacity: 0; }
-          20% { opacity: 1; }
-          80% { opacity: 1; }
-          100% { left: 100%; opacity: 0; }
-        }
-      `}</style>
     </div>
   );
 }

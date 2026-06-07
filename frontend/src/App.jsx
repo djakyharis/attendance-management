@@ -7,11 +7,13 @@ import ManagerAttendance from './pages/ManagerAttendance';
 import AdminTeam from './pages/AdminTeam';
 import UnderConstruction from './pages/UnderConstruction';
 import Login from './pages/Login';
+import ManagerReports from './pages/ManagerReports';
 import { useAuth } from './hooks/useAuth';
 
 // Dynamic Router for Attendance based on Role
 function AttendanceRouter() {
-  const { role } = useAuth();
+  const { role, loading } = useAuth();
+  if (loading) return null;
   if (role === 'super-admin') return <UnderConstruction title="Admin Attendance Log" />;
   if (role === 'manager') return <ManagerAttendance />;
   return <EmployeeAttendance />;
@@ -19,11 +21,22 @@ function AttendanceRouter() {
 
 // Dynamic Router for Dashboard based on Role
 function DashboardRouter() {
-  const { role } = useAuth();
+  const { role, loading } = useAuth();
+  if (loading) return null;
   if (role === 'super-admin') return <AdminDashboard />;
   if (role === 'manager') return <ManagerDashboard />;
   // Fallback to employee
   return <EmployeeDashboard />;
+}
+
+// Dynamic Router for Reports based on Role
+function ReportsRouter() {
+  const { role, loading } = useAuth();
+  if (loading) return null;
+  if (role === 'super-admin') return <UnderConstruction title="Global Reports" />;
+  if (role === 'manager') return <ManagerReports />;
+  // Fallback to employee (hidden, so redirect to dashboard)
+  return <Navigate to="/dashboard" replace />;
 }
 
 function App() {
@@ -42,7 +55,7 @@ function App() {
         <Route path="/attendance" element={<AttendanceRouter />} />
         <Route path="/team" element={<AdminTeam />} />
         <Route path="/security" element={<UnderConstruction title="Security Logs" />} />
-        <Route path="/reports" element={<UnderConstruction title="Reports" />} />
+        <Route path="/reports" element={<ReportsRouter />} />
         
         {/* Default Route */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
