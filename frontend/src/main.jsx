@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { Amplify } from 'aws-amplify'
 import './index.css'
 import App from './App.jsx'
+import { AuthProvider } from './hooks/useAuth'
 
 // Konfigurasi AWS Amplify Authentication
 Amplify.configure({
@@ -17,6 +18,8 @@ Amplify.configure({
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </StrictMode>,
 )

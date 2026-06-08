@@ -6,7 +6,7 @@ import AttendanceTable from '../components/AttendanceTable';
 import { useAuth } from '../hooks/useAuth';
 
 export default function EmployeeDashboard() {
-  const { user, department, role } = useAuth();
+  const { user, department, role, name, employeeId } = useAuth();
   
   return (
     <div className="flex h-screen overflow-hidden">
@@ -34,8 +34,8 @@ export default function EmployeeDashboard() {
                     <span className="material-symbols-outlined text-[32px] text-primary">account_circle</span>
                   </div>
                   <div className="mb-4 w-full">
-                    <p className="font-headline-md text-headline-md text-primary font-bold leading-tight mb-1">{user?.username ? user.username.toUpperCase() : 'JOHN DOE'}</p>
-                    <p className="font-code-inline text-code-inline text-secondary mb-3">{user?.userId || '5070523'}</p>
+                    <p className="font-headline-md text-headline-md text-primary font-bold leading-tight mb-1">{name ? name.toUpperCase() : user?.username ? user.username.toUpperCase() : 'JOHN DOE'}</p>
+                    <p className="font-code-inline text-code-inline text-secondary mb-3">{employeeId || user?.userId || '5070523'}</p>
                     <div className="flex justify-center gap-2">
                       <span className="bg-surface-variant text-on-surface px-2 py-1 rounded text-[10px] uppercase tracking-widest font-bold">{department || 'IT'}</span>
                       <span className="bg-primary/10 border border-primary/30 text-primary px-2 py-1 rounded text-[10px] uppercase tracking-widest font-bold">{role || 'EMPLOYEE'}</span>

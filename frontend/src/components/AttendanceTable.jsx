@@ -1,33 +1,197 @@
+import { useState, useEffect } from 'react';
+import apiService from '../services/apiService';
+import { useAuth } from '../hooks/useAuth';
+
+// Component to handle lazy loading of the proof image
+const AttendanceProof = ({ userId, timestamp, defaultUrl, status, photoKey, onImageClick }) => {
+  const [imageUrl, setImageUrl] = useState(defaultUrl || null);
+  const [loading, setLoading] = useState(!defaultUrl && status !== 'Forbidden');
+  
+  useEffect(() => {
+    let isMounted = true;
+    const fetchUrl = async () => {
+      if (defaultUrl || status === 'Forbidden') {
+        setLoading(false);
+        return;
+      }
+      try {
+        const res = await apiService.getPhotoUrl(userId, timestamp, photoKey);
+        if (isMounted) {
+          // Assuming the response contains an 'url' or it's the direct URL string
+          setImageUrl(res?.url || res?.photoUrl || res);
+        }
+      } catch (err) {
+        console.error('Failed to load proof image', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    fetchUrl();
+    return () => { isMounted = false; };
+  }, [userId, timestamp, defaultUrl, status]);
+
+  if (status === 'Forbidden') {
+    return (
+      <div className="w-12 h-8 rounded bg-surface-container-highest border border-outline-variant flex items-center justify-center">
+        <span className="material-symbols-outlined text-[16px] text-error">broken_image</span>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="w-12 h-8 rounded bg-surface-container-highest border border-outline-variant flex items-center justify-center">
+        <span className="material-symbols-outlined text-[16px] animate-spin text-primary">sync</span>
+      </div>
+    );
+  }
+
+  if (imageUrl) {
+    return (
+      <div 
+        className="w-12 h-8 rounded bg-surface-container-highest border border-outline-variant overflow-hidden cursor-pointer hover:opacity-80 transition-opacity ring-1 ring-transparent hover:ring-primary"
+        onClick={() => onImageClick && onImageClick(imageUrl)}
+        title="Click to view full image"
+      >
+        <img src={imageUrl} alt="proof" className="w-full h-full object-cover" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-12 h-8 rounded bg-surface-container-highest border border-outline-variant flex items-center justify-center">
+      <span className="material-symbols-outlined text-[16px] text-outline">image</span>
+    </div>
+  );
+};
+
 export default function AttendanceTable({ viewMode = 'employee', departmentFilter = 'ALL' }) {
+  const { user, employeeId, name, department } = useAuth();
   const showEmployee = viewMode === 'manager' || viewMode === 'admin';
   const isAdmin = viewMode === 'admin';
 
-  let mockLogs = [];
-  
-  if (isAdmin) {
-    mockLogs = [
-      { id: 1, name: 'Alice Smith', dept: 'ENGINEERING', time: '2026-06-07 08:55:12', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=alice' },
-      { id: 2, name: 'David Chen', dept: 'SALES', time: '2026-06-07 08:58:22', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=david' },
-      { id: 3, name: 'Charlie Lee', dept: 'ENGINEERING', time: '2026-06-07 09:05:01', status: 'Forbidden', proofUrl: null },
-      { id: 4, name: 'Emma Watson', dept: 'HR', time: '2026-06-07 09:12:45', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=emma' }
-    ];
+  const [logs, setLogs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(null);
 
-    if (departmentFilter !== 'ALL') {
-      mockLogs = mockLogs.filter(log => log.dept === departmentFilter);
-    }
-  } else if (viewMode === 'manager') {
-    mockLogs = [
-      { id: 1, name: 'Alice Smith', time: '2026-06-07 08:55:12', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=alice' },
-      { id: 2, name: 'Bob Johnson', time: '2026-06-07 08:58:22', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=bob' },
-      { id: 3, name: 'Charlie Lee', time: '2026-06-07 09:05:01', status: 'Forbidden', proofUrl: null }
-    ];
-  } else {
-    mockLogs = [
-      { id: 1, time: '2026-06-07 08:55:12', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=current' },
-      { id: 2, time: '2026-06-06 08:52:45', status: 'Verified', proofUrl: 'https://i.pravatar.cc/150?u=current' },
-      { id: 3, time: '2026-06-05 08:45:01', status: 'Forbidden', proofUrl: null }
-    ];
-  }
+  useEffect(() => {
+    const fetchLogs = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch attendance logs
+        const data = await apiService.getAttendance();
+        let fetchedLogs = Array.isArray(data) ? data : (data.items || []);
+        
+        // If we need to show employee names (Manager/Admin view), fetch the user list for joining
+        let userMap = {};
+        if (showEmployee) {
+          try {
+            const usersData = await apiService.getEmployees();
+            
+            let usersList = [];
+            if (Array.isArray(usersData)) {
+              usersList = usersData;
+            } else if (usersData && Array.isArray(usersData.employees)) {
+              usersList = usersData.employees;
+            } else if (usersData && Array.isArray(usersData.Users)) {
+              usersList = usersData.Users; // Standard AWS SDK format
+            } else if (usersData && Array.isArray(usersData.users)) {
+              usersList = usersData.users;
+            } else if (usersData && typeof usersData === 'object') {
+               // Just in case it's nested differently, e.g., { data: { employees: [] } }
+               const body = usersData.body ? (typeof usersData.body === 'string' ? JSON.parse(usersData.body) : usersData.body) : usersData;
+               usersList = body.employees || body.Users || body.users || [];
+            }
+
+            usersList.forEach(userItem => {
+              // 1. AWS SDK Format (UserType with Attributes array)
+              if (userItem.Attributes && Array.isArray(userItem.Attributes)) {
+                const subAttr = userItem.Attributes.find(a => a.Name === 'sub');
+                const nameAttr = userItem.Attributes.find(a => a.Name === 'name' || a.Name === 'custom:name' || a.Name === 'profile');
+                
+                if (subAttr && nameAttr) userMap[subAttr.Value] = nameAttr.Value;
+                if (userItem.Username && nameAttr) userMap[userItem.Username] = nameAttr.Value;
+              } 
+              // 2. Custom mapped flattened object format
+              else {
+                const userId = userItem.sub || userItem.id || userItem.userId || userItem.Username || userItem.username;
+                const userName = userItem.name || userItem['custom:name'] || userItem.profile || userItem.email || userItem.username;
+                if (userId && userName) {
+                  userMap[userId] = userName;
+                }
+              }
+            });
+          } catch (userErr) {
+            console.error('Failed to fetch users for joining:', userErr);
+          }
+        }
+        
+        // Optional client side filtering
+        if (viewMode === 'employee') {
+          const myId1 = user?.userId;
+          const myId2 = user?.username;
+          const myId3 = employeeId;
+          const myId4 = name;
+          
+          fetchedLogs = fetchedLogs.filter(log => {
+            const logId = log.userId || log.user || log.username;
+            return logId === myId1 || logId === myId2 || logId === myId3 || logId === myId4;
+          });
+        } else if (viewMode === 'manager') {
+          const userDept = (department || '').toLowerCase();
+          fetchedLogs = fetchedLogs.filter(log => {
+            const logDept = (log.dept || log.department || '').toLowerCase();
+            return logDept === userDept;
+          });
+        } else if (isAdmin && departmentFilter !== 'ALL') {
+          const filterDept = (departmentFilter || '').toLowerCase();
+          fetchedLogs = fetchedLogs.filter(log => {
+            const logDept = (log.dept || log.department || '').toLowerCase();
+            return logDept === filterDept;
+          });
+        }
+
+        // Map backend keys to expected keys
+        const mappedLogs = fetchedLogs.map((log, index) => {
+          // Format ISO timestamp to readable date
+          let readableTime = log.timestamp || log.time || '';
+          if (readableTime && readableTime.includes('T')) {
+            const d = new Date(readableTime);
+            if (!isNaN(d.getTime())) {
+              readableTime = d.toLocaleString('en-GB', { 
+                day: '2-digit', month: 'short', year: 'numeric', 
+                hour: '2-digit', minute: '2-digit' 
+              });
+            }
+          }
+          
+          // Capitalize status
+          let statusText = log.status || 'Verified';
+          if (statusText) statusText = statusText.charAt(0).toUpperCase() + statusText.slice(1);
+
+          return {
+            id: log.id || log.attendanceId || index,
+            name: userMap[log.userId] || log.username || log.userName || log.name || log.userId || 'Unknown',
+            dept: log.dept || log.department || 'N/A',
+            time: readableTime,
+            originalTime: log.timestamp || log.time,
+            status: statusText,
+            photoKey: log.photoKey || log.uploadUrl || null,
+            proofUrl: (log.photoKey && log.photoKey.startsWith('http')) ? log.photoKey : (log.uploadUrl && log.uploadUrl.startsWith('http') ? log.uploadUrl : null),
+            userId: log.userId || ''
+          };
+        });
+        
+        setLogs(mappedLogs);
+      } catch (error) {
+        console.error('Failed to fetch attendance logs:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchLogs();
+  }, [departmentFilter, isAdmin, viewMode, employeeId, user?.userId, name, department]);
 
   return (
     <div className="bg-surface-container border border-outline-variant rounded p-1 overflow-x-auto">
@@ -43,7 +207,21 @@ export default function AttendanceTable({ viewMode = 'employee', departmentFilte
             </tr>
           </thead>
           <tbody className="divide-y divide-outline-variant/50">
-            {mockLogs.map((log) => (
+            {isLoading ? (
+              <tr>
+                <td colSpan={showEmployee && isAdmin ? 5 : showEmployee ? 4 : 3} className="py-8 text-center text-on-surface-variant font-code-inline">
+                  <span className="material-symbols-outlined animate-spin text-[32px] mb-2 block opacity-50">sync</span>
+                  Fetching records...
+                </td>
+              </tr>
+            ) : logs.length === 0 ? (
+              <tr>
+                <td colSpan={showEmployee && isAdmin ? 5 : showEmployee ? 4 : 3} className="py-8 text-center text-on-surface-variant font-code-inline">
+                  <span className="material-symbols-outlined text-[32px] mb-2 block opacity-50">history_toggle_off</span>
+                  No attendance records found.
+                </td>
+              </tr>
+            ) : logs.map((log) => (
               <tr key={log.id} className={`hover:bg-surface-variant/50 transition-colors ${log.status === 'Forbidden' ? 'bg-error-container/10' : ''}`}>
                 <td className="py-3 px-4 font-code-inline text-on-surface">{log.time}</td>
                 {showEmployee && (
@@ -57,26 +235,23 @@ export default function AttendanceTable({ viewMode = 'employee', departmentFilte
                   </td>
                 )}
                 <td className="py-3 px-4">
-                  {log.proofUrl ? (
-                    <div className="w-12 h-8 rounded bg-surface-container-highest border border-outline-variant overflow-hidden">
-                      <img src={log.proofUrl} alt="proof" className="w-full h-full object-cover" />
-                    </div>
-                  ) : (
-                    <div className="w-12 h-8 rounded bg-surface-container-highest border border-outline-variant flex items-center justify-center">
-                      <span className={`material-symbols-outlined text-[16px] ${log.status === 'Forbidden' ? 'text-error' : 'text-outline'}`}>
-                        {log.status === 'Forbidden' ? 'broken_image' : 'image'}
-                      </span>
-                    </div>
-                  )}
+                  <AttendanceProof 
+                    userId={log.userId} 
+                    timestamp={log.originalTime} 
+                    defaultUrl={log.proofUrl} 
+                    status={log.status} 
+                    photoKey={log.photoKey} 
+                    onImageClick={setSelectedImage}
+                  />
                 </td>
                 <td className="py-3 px-4">
-                  {log.status === 'Verified' ? (
+                  {log.status.toLowerCase() === 'hadir' || log.status === 'Verified' ? (
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-tertiary-container/10 text-tertiary text-xs uppercase tracking-wider font-bold border border-tertiary-container/20">
-                      <span className="material-symbols-outlined text-[12px]">check_circle</span> Verified
+                      <span className="material-symbols-outlined text-[12px]">check_circle</span> {log.status}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-error/10 text-error text-xs uppercase tracking-wider font-bold border border-error/20">
-                      <span className="material-symbols-outlined text-[12px]">block</span> Forbidden
+                      <span className="material-symbols-outlined text-[12px]">warning</span> {log.status}
                     </span>
                   )}
                 </td>
@@ -85,6 +260,30 @@ export default function AttendanceTable({ viewMode = 'employee', departmentFilte
           </tbody>
         </table>
       </div>
+
+      {/* Image Modal Popout */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] w-full flex justify-center animate-in zoom-in-95 duration-200">
+            <button 
+              className="absolute -top-12 right-0 text-white hover:text-primary transition-colors flex items-center gap-2 font-label-md uppercase tracking-wider cursor-pointer"
+              onClick={() => setSelectedImage(null)}
+            >
+              <span className="material-symbols-outlined">close</span>
+              Tutup
+            </button>
+            <img 
+              src={selectedImage} 
+              alt="Attendance Proof Full Size" 
+              className="max-w-full max-h-[90vh] object-contain rounded-lg border border-outline-variant shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+              onClick={(e) => e.stopPropagation()} 
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

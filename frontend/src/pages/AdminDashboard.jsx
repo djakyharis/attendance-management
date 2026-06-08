@@ -5,7 +5,7 @@ import AttendanceTable from '../components/AttendanceTable';
 import { useAuth } from '../hooks/useAuth';
 
 export default function AdminDashboard() {
-  const { user, role } = useAuth();
+  const { user, role, name, employeeId } = useAuth();
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
@@ -28,8 +28,8 @@ export default function AdminDashboard() {
                     <span className="material-symbols-outlined text-[32px] text-primary">admin_panel_settings</span>
                   </div>
                   <div className="mb-4 w-full">
-                    <p className="font-headline-md text-headline-md text-primary font-bold leading-tight mb-1">{user?.username ? user.username.toUpperCase() : 'SYSTEM ADMIN'}</p>
-                    <p className="font-code-inline text-code-inline text-secondary mb-3">{user?.userId || 'ROOT'}</p>
+                    <p className="font-headline-md text-headline-md text-primary font-bold leading-tight mb-1">{name ? name.toUpperCase() : user?.username ? user.username.toUpperCase() : 'SUPER ADMIN'}</p>
+                    <p className="font-code-inline text-code-inline text-secondary mb-3">{employeeId || 'ROOT'}</p>
                     <div className="flex justify-center gap-2 flex-wrap">
                       <span className="bg-surface-variant text-on-surface px-2 py-1 rounded text-[10px] uppercase tracking-widest font-bold">ALL DEPARTMENTS</span>
                       <span className="bg-primary/10 border border-primary/30 text-primary px-2 py-1 rounded text-[10px] uppercase tracking-widest font-bold">{role || 'SUPER-ADMIN'}</span>

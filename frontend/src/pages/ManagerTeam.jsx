@@ -2,10 +2,69 @@ import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useAuth } from '../hooks/useAuth';
+import { useState, useEffect } from 'react';
+import apiService from '../services/apiService';
 
 export default function ManagerTeam() {
   const { department } = useAuth();
-  const deptName = department || 'ENGINEERING';
+  const deptName = department || 'IT';
+  
+  const [employees, setEmployees] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTeam = async () => {
+      try {
+        setIsLoading(true);
+        const data = await apiService.getEmployees();
+        
+        let usersList = [];
+        if (Array.isArray(data)) {
+          usersList = data;
+        } else if (data && Array.isArray(data.employees)) {
+          usersList = data.employees;
+        } else if (data && Array.isArray(data.Users)) {
+          usersList = data.Users;
+        } else if (data && Array.isArray(data.users)) {
+          usersList = data.users;
+        } else if (data && typeof data === 'object') {
+           const body = data.body ? (typeof data.body === 'string' ? JSON.parse(data.body) : data.body) : data;
+           usersList = body.employees || body.Users || body.users || [];
+        }
+
+        // Map and filter for this manager's department
+        const targetDept = deptName.toLowerCase();
+        const mappedTeam = usersList.map(u => {
+          if (u.Attributes && Array.isArray(u.Attributes)) {
+            const getAttr = (name) => u.Attributes.find(a => a.Name === name)?.Value || '';
+            return {
+              id: getAttr('sub') || u.Username || u.id,
+              name: getAttr('name') || getAttr('email') || u.Username || 'Unknown',
+              email: getAttr('email') || '',
+              dept: getAttr('custom:department') || 'UNASSIGNED',
+              status: u.UserStatus || 'CONFIRMED'
+            };
+          } else {
+            return {
+              id: u.sub || u.id || u.userId || u.username || u.Username || 'Unknown',
+              name: u.name || u['custom:name'] || u.profile || u.email || 'Unknown',
+              email: u.email || '',
+              dept: u['custom:department'] || u.department || u.dept || 'UNASSIGNED',
+              status: u.status || u.UserStatus || 'CONFIRMED'
+            };
+          }
+        }).filter(emp => (emp.dept || '').toLowerCase() === targetDept);
+
+        setEmployees(mappedTeam);
+      } catch (error) {
+        console.error('Failed to fetch team roster', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTeam();
+  }, [deptName]);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -41,30 +100,34 @@ export default function ManagerTeam() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/50">
-                    <tr className="hover:bg-surface-variant/50 transition-colors">
-                      <td className="py-3 px-4 font-code-inline text-on-surface">USR-001</td>
-                      <td className="py-3 px-4 text-on-surface">John Doe</td>
-                      <td className="py-3 px-4 text-on-surface-variant">{deptName}</td>
-                      <td className="py-3 px-4"><span className="text-tertiary">MANAGER</span></td>
-                    </tr>
-                    <tr className="hover:bg-surface-variant/50 transition-colors">
-                      <td className="py-3 px-4 font-code-inline text-on-surface">USR-002</td>
-                      <td className="py-3 px-4 text-on-surface">Jane Smith</td>
-                      <td className="py-3 px-4 text-on-surface-variant">{deptName}</td>
-                      <td className="py-3 px-4"><span className="text-on-surface">EMPLOYEE</span></td>
-                    </tr>
-                    <tr className="hover:bg-surface-variant/50 transition-colors">
-                      <td className="py-3 px-4 font-code-inline text-on-surface">USR-003</td>
-                      <td className="py-3 px-4 text-on-surface">Alice Johnson</td>
-                      <td className="py-3 px-4 text-on-surface-variant">{deptName}</td>
-                      <td className="py-3 px-4"><span className="text-on-surface">EMPLOYEE</span></td>
-                    </tr>
-                    <tr className="hover:bg-surface-variant/50 transition-colors">
-                      <td className="py-3 px-4 font-code-inline text-on-surface">USR-004</td>
-                      <td className="py-3 px-4 text-on-surface">Bob Lee</td>
-                      <td className="py-3 px-4 text-on-surface-variant">{deptName}</td>
-                      <td className="py-3 px-4"><span className="text-on-surface">EMPLOYEE</span></td>
-                    </tr>
+                    {isLoading ? (
+                      <tr>
+                        <td colSpan="4" className="py-8 text-center text-on-surface-variant font-code-inline">
+                          <span className="material-symbols-outlined animate-spin text-[32px] mb-2 block opacity-50">sync</span>
+                          Loading team directory...
+                        </td>
+                      </tr>
+                    ) : employees.length > 0 ? (
+                      employees.map((emp) => (
+                        <tr key={emp.id} className="hover:bg-surface-variant/50 transition-colors">
+                          <td className="py-3 px-4 font-code-inline text-on-surface text-xs">{emp.id}</td>
+                          <td className="py-3 px-4 text-on-surface font-label-md uppercase">{emp.name}</td>
+                          <td className="py-3 px-4 text-on-surface-variant">{emp.dept}</td>
+                          <td className="py-3 px-4">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-surface-variant text-on-surface text-xs uppercase tracking-wider font-bold border border-outline-variant">
+                              {emp.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="4" className="py-8 text-center text-on-surface-variant font-code-inline">
+                          <span className="material-symbols-outlined text-[32px] mb-2 block opacity-50">search_off</span>
+                          No team members found for {deptName} department.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
                 </div>

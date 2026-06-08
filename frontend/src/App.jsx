@@ -27,8 +27,9 @@ const PageLoader = () => (
 
 // Dynamic Router for Attendance based on Role
 function AttendanceRouter() {
-  const { role, loading } = useAuth();
-  if (loading) return null;
+  const { user, role, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!user) return <Navigate to="/login" replace />;
   if (role === 'super-admin') return <AdminAttendance />;
   if (role === 'manager') return <ManagerAttendance />;
   return <EmployeeAttendance />;
@@ -36,8 +37,9 @@ function AttendanceRouter() {
 
 // Dynamic Router for Dashboard based on Role
 function DashboardRouter() {
-  const { role, loading } = useAuth();
-  if (loading) return null;
+  const { user, role, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!user) return <Navigate to="/login" replace />;
   if (role === 'super-admin') return <AdminDashboard />;
   if (role === 'manager') return <ManagerDashboard />;
   // Fallback to employee
@@ -46,8 +48,9 @@ function DashboardRouter() {
 
 // Dynamic Router for Reports based on Role
 function ReportsRouter() {
-  const { role, loading } = useAuth();
-  if (loading) return null;
+  const { user, role, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!user) return <Navigate to="/login" replace />;
   if (role === 'super-admin') return <AdminReports />;
   if (role === 'manager') return <ManagerReports />;
   // Fallback to employee (hidden, so redirect to dashboard)
@@ -56,8 +59,9 @@ function ReportsRouter() {
 
 // Dynamic Router for Team based on Role
 function TeamRouter() {
-  const { role, loading } = useAuth();
-  if (loading) return null;
+  const { user, role, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!user) return <Navigate to="/login" replace />;
   if (role === 'super-admin') return <AdminTeam />;
   if (role === 'manager') return <ManagerTeam />;
   return <Navigate to="/dashboard" replace />;
@@ -65,8 +69,9 @@ function TeamRouter() {
 
 // Dynamic Router for Security based on Role
 function SecurityRouter() {
-  const { role, loading } = useAuth();
-  if (loading) return null;
+  const { user, role, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!user) return <Navigate to="/login" replace />;
   if (role === 'super-admin') return <AdminSecurity />;
   return <Navigate to="/dashboard" replace />;
 }
@@ -78,10 +83,10 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           
-          {/* Explicit Role Dashboards */}
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/manager" element={<ManagerDashboard />} />
-          <Route path="/employee" element={<EmployeeDashboard />} />
+          {/* Explicit Role Dashboards (Protected) */}
+          <Route path="/admin" element={<DashboardRouter />} />
+          <Route path="/manager" element={<DashboardRouter />} />
+          <Route path="/employee" element={<DashboardRouter />} />
           <Route path="/dashboard" element={<DashboardRouter />} />
           
           {/* Modules */}

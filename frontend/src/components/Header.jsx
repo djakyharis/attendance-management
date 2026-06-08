@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { signOut } from 'aws-amplify/auth';
 
 export default function Header() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [time, setTime] = useState(new Date());
   const navigate = useNavigate();
-  const { user, department } = useAuth();
+  const { user, department, name, employeeId } = useAuth();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -16,9 +17,13 @@ export default function Header() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('mockRole');
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out: ', error);
+    }
   };
 
   const hours = time.getHours().toString().padStart(2, '0');
@@ -99,9 +104,9 @@ export default function Header() {
 
         <div className="flex items-center gap-3 border-l border-outline-variant pl-6 relative">
           <div className="text-right hidden sm:block">
-            <p className="font-code-inline text-code-inline text-primary leading-none mb-1">{user?.username ? user.username.toUpperCase() : 'JOHN DOE'}</p>
+            <p className="font-code-inline text-code-inline text-primary leading-none mb-1">{name ? name.toUpperCase() : user?.username ? user.username.toUpperCase() : 'JOHN DOE'}</p>
             <p className="text-[10px] uppercase tracking-widest text-secondary flex items-center justify-end gap-1">
-              {user?.userId || '5070523'} | {department || 'IT'}
+              {employeeId || user?.userId || '5070523'} | {department || 'IT'}
             </p>
           </div>
           <button
@@ -118,8 +123,8 @@ export default function Header() {
           {showProfileMenu && (
             <div className="absolute top-14 right-0 w-48 bg-surface-container-high border border-outline-variant rounded shadow-[0_0_15px_rgba(0,0,0,0.5)] z-50 overflow-hidden">
               <div className="p-3 border-b border-outline-variant sm:hidden">
-                <p className="font-code-inline text-code-inline text-primary">{user?.username ? user.username.toUpperCase() : 'JOHN DOE'}</p>
-                <p className="text-[10px] uppercase tracking-widest text-secondary mt-1">{user?.userId || '5070523'} | {department || 'IT'}</p>
+                <p className="font-code-inline text-code-inline text-primary">{name ? name.toUpperCase() : user?.username ? user.username.toUpperCase() : 'JOHN DOE'}</p>
+                <p className="text-[10px] uppercase tracking-widest text-secondary mt-1">{employeeId || user?.userId || '5070523'} | {department || 'IT'}</p>
               </div>
               <button
                 onClick={handleLogout}

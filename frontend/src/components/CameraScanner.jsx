@@ -1,10 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
+import apiService from '../services/apiService';
+import { useAuth } from '../hooks/useAuth';
 
 export default function CameraScanner() {
+  const { user, name, employeeId, department } = useAuth();
   const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const [streamActive, setStreamActive] = useState(false);
   const [error, setError] = useState(null);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
   const isMounted = useRef(true);
 
   const streamRef = useRef(null);
@@ -17,6 +22,9 @@ export default function CameraScanner() {
   const startCamera = async () => {
     try {
       setError(null);
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("SECURE_CONTEXT_REQUIRED");
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       if (isMounted.current && videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -28,7 +36,11 @@ export default function CameraScanner() {
       }
     } catch (err) {
       console.error("Error accessing camera:", err);
-      setError("Camera access denied or unavailable.");
+      if (err.message === "SECURE_CONTEXT_REQUIRED") {
+        setError("Camera requires HTTPS or localhost. If you are using an IP address, please use HTTPS.");
+      } else {
+        setError("Camera access denied or unavailable.");
+      }
       setStreamActive(false);
     }
   };
@@ -56,14 +68,62 @@ export default function CameraScanner() {
     }
   };
 
-  const handleCheckIn = () => {
-    if (!streamActive) return;
-    setIsCheckedIn(true);
-    // Automatically stop camera after successful check-in
-    setTimeout(() => {
-      stopCamera(true);
-      setError(null); // Clear manual turn off message since this is a success state
-    }, 1500);
+  const handleCheckIn = async () => {
+    if (!streamActive || !videoRef.current || !canvasRef.current) return;
+    setIsCheckingIn(true);
+    setError(null);
+
+    try {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      
+      // Set canvas dimensions to match video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      // Draw current video frame to canvas
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // Convert canvas to Blob (JPEG image)
+      const imageBlob = await new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.8);
+      });
+
+      // 1. Get pre-signed URL from API Gateway
+      const uploadUrlResponse = await apiService.getUploadUrl();
+      const uploadUrl = uploadUrlResponse.uploadUrl || uploadUrlResponse;
+      // Backend explicitly sends 'fileName' as the key
+      const returnedPhotoKey = uploadUrlResponse.fileName || uploadUrlResponse.photoKey || uploadUrlResponse.key;
+
+      // 2. Upload image to S3 directly via pre-signed URL
+      await apiService.uploadToS3(uploadUrl, imageBlob);
+
+      // 3. Record Check-in to API Gateway
+      const presenceData = {
+        user: employeeId || user?.userId || name || "unknown",
+        userId: user?.userId || employeeId || "unknown",
+        username: name || user?.username || "unknown",
+        status: "Verified",
+        department: department || "UNKNOWN",
+        photoKey: returnedPhotoKey,
+        action: "checkin"
+      };
+      await apiService.postPresence(presenceData);
+
+      setIsCheckedIn(true);
+      // Automatically stop camera after successful check-in
+      setTimeout(() => {
+        stopCamera(true);
+        setError(null); // Clear manual turn off message since this is a success state
+      }, 1500);
+
+    } catch (err) {
+      console.error("Error during check-in flow:", err);
+      setError(err.response?.data?.message || err.message || "Failed to complete check-in. Please try again.");
+    } finally {
+      setIsCheckingIn(false);
+    }
   };
 
   useEffect(() => {
@@ -117,6 +177,7 @@ export default function CameraScanner() {
                 muted
                 className="absolute inset-0 w-full h-full object-cover z-10"
               />
+              <canvas ref={canvasRef} className="hidden" />
             </>
           )}
         </div>
@@ -127,16 +188,21 @@ export default function CameraScanner() {
         <button 
           onClick={toggleCamera}
           className="bg-transparent border border-secondary text-secondary font-label-md text-label-md py-3 px-6 rounded hover:bg-secondary/10 transition-colors uppercase tracking-wider cursor-pointer"
+          disabled={isCheckingIn}
         >
           {streamActive || isCheckedIn ? 'Turn Off Camera' : 'Turn On Camera'}
         </button>
         <button
           onClick={handleCheckIn}
-          className={`font-label-md text-label-md py-3 px-8 rounded uppercase tracking-wider flex items-center gap-2 transition-colors cursor-pointer ${streamActive && !error && !isCheckedIn ? 'bg-primary-container text-on-primary-container hover:bg-primary-container/80 shadow-[0_0_15px_rgba(203,166,247,0.3)]' : 'bg-surface-variant text-on-surface-variant cursor-not-allowed opacity-50'}`}
-          disabled={!streamActive || error || isCheckedIn}
+          className={`font-label-md text-label-md py-3 px-8 rounded uppercase tracking-wider flex items-center gap-2 transition-colors cursor-pointer ${streamActive && !error && !isCheckedIn && !isCheckingIn ? 'bg-primary-container text-on-primary-container hover:bg-primary-container/80 shadow-[0_0_15px_rgba(203,166,247,0.3)]' : 'bg-surface-variant text-on-surface-variant cursor-not-allowed opacity-50'}`}
+          disabled={!streamActive || error || isCheckedIn || isCheckingIn}
         >
-          <span className="material-symbols-outlined text-[18px]">fingerprint</span>
-          {isCheckedIn ? 'Verified' : 'Check In Now'}
+          {isCheckingIn ? (
+            <span className="material-symbols-outlined text-[18px] animate-spin">sync</span>
+          ) : (
+            <span className="material-symbols-outlined text-[18px]">fingerprint</span>
+          )}
+          {isCheckedIn ? 'Verified' : isCheckingIn ? 'Processing...' : 'Check In Now'}
         </button>
       </div>
     </div>

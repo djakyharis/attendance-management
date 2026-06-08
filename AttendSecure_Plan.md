@@ -1,4 +1,3 @@
-
 # AttendSecure — Team Task Division (3 Orang)
 
 > Setiap orang mengerjakan bagiannya masing-masing secara paralel. Integrasi dilakukan di akhir dengan cara Orang 2 mengupdate `.env` dan Orang 3 melakukan final testing.

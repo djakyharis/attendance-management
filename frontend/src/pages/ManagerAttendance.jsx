@@ -23,7 +23,7 @@ export default function ManagerAttendance() {
                 <span className="material-symbols-outlined text-[16px]">groups</span>
                 Today's Department Log
               </h3>
-              <AttendanceTable />
+              <AttendanceTable viewMode="manager" />
               
               <div className="mt-4 p-4 border border-tertiary/20 bg-tertiary/5 text-sm text-tertiary font-code-inline flex items-center gap-2">
                 <span className="material-symbols-outlined">info</span>

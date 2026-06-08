@@ -1,35 +1,108 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import apiService from '../services/apiService';
 
 export default function AdminTeam() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedDept, setSelectedDept] = useState('ALL');
-  const [formData, setFormData] = useState({ fullName: '', email: '', userId: '', password: '', department: 'ENGINEERING', role: 'EMPLOYEE' });
+  const [formData, setFormData] = useState({ fullName: '', email: '', userId: '', password: '', department: 'IT', role: 'EMPLOYEE' });
   const [notification, setNotification] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const mockUsers = useMemo(() => [
-    { id: 'USR-001', name: 'John Doe', dept: 'ENGINEERING', role: 'MANAGER' },
-    { id: 'USR-002', name: 'Jane Smith', dept: 'ENGINEERING', role: 'EMPLOYEE' },
-    { id: 'USR-003', name: 'Alice Lee', dept: 'HR', role: 'MANAGER' },
-    { id: 'USR-004', name: 'Bob Chen', dept: 'SALES', role: 'EMPLOYEE' },
-    { id: 'USR-005', name: 'Eva Green', dept: 'MARKETING', role: 'MANAGER' },
-  ], []);
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const data = await apiService.manageUsers({ action: 'list' });
+      let usersList = [];
+      if (Array.isArray(data)) {
+        usersList = data;
+      } else if (data && Array.isArray(data.Users)) {
+        usersList = data.Users;
+      } else if (data && Array.isArray(data.users)) {
+        usersList = data.users;
+      } else if (data && typeof data === 'object') {
+         const body = data.body ? (typeof data.body === 'string' ? JSON.parse(data.body) : data.body) : data;
+         usersList = body.Users || body.users || [];
+      }
+
+      const mappedUsers = usersList.map(u => {
+        if (u.Attributes && Array.isArray(u.Attributes)) {
+          const getAttr = (name) => u.Attributes.find(a => a.Name === name)?.Value || '';
+          return {
+            id: getAttr('sub') || u.Username || u.id,
+            name: getAttr('name') || getAttr('email') || u.Username || 'Unknown',
+            email: getAttr('email') || '',
+            dept: getAttr('custom:department') || 'UNASSIGNED',
+            role: 'EMPLOYEE',
+            raw: u
+          };
+        } else {
+          return {
+            id: u.sub || u.id || u.userId || u.Username || 'Unknown',
+            name: u.name || u['custom:name'] || u.username || u.profile || u.email || 'Unknown',
+            email: u.email || '',
+            dept: u['custom:department'] || u.department || u.dept || 'UNASSIGNED',
+            role: u.role || 'EMPLOYEE',
+            raw: u
+          };
+        }
+      });
+      setUsers(mappedUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const filteredUsers = useMemo(() => {
-    return selectedDept === 'ALL' ? mockUsers : mockUsers.filter(u => u.dept === selectedDept);
-  }, [selectedDept, mockUsers]);
+    return selectedDept === 'ALL' ? users : users.filter(u => u.dept === selectedDept);
+  }, [selectedDept, users]);
 
-  const handleCreateUser = (e) => {
+  const handleCreateUser = async (e) => {
     e.preventDefault();
-    // Simulate API call
-    setNotification(`SUCCESS: User ${formData.userId} created and added to directory.`);
-    setTimeout(() => {
-      setShowCreateModal(false);
-      setNotification(null);
-      setFormData({ fullName: '', email: '', userId: '', password: '', department: 'ENGINEERING', role: 'EMPLOYEE' });
-    }, 2000);
+    setErrorMsg(null);
+    setIsSubmitting(true);
+    
+    // Map role to groupName based on Department
+    let groupName = `${formData.department}_employee`; // Default to Department_employee
+    if (formData.role === 'ADMIN') groupName = 'super-admin';
+    if (formData.role === 'MANAGER') groupName = `${formData.department}_manager`;
+
+    try {
+      const response = await apiService.manageUsers({
+        action: 'create',
+        email: formData.email,
+        department: formData.department,
+        groupName: groupName,
+        password: formData.password,
+        name: formData.fullName,
+        employeeId: formData.userId
+      });
+
+      setNotification(`SUCCESS: ${response.message || 'User created'}`);
+      fetchUsers(); // Refresh the list
+      
+      setTimeout(() => {
+        setShowCreateModal(false);
+        setNotification(null);
+        setFormData({ fullName: '', email: '', userId: '', password: '', department: 'IT', role: 'EMPLOYEE' });
+      }, 2000);
+    } catch (error) {
+      console.error('Error creating user:', error);
+      setErrorMsg(error.response?.data?.message || error.message || 'Failed to create user');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -63,6 +136,11 @@ export default function AdminTeam() {
                         </div>
                       ) : (
                         <form onSubmit={handleCreateUser} className="space-y-4">
+                          {errorMsg && (
+                            <div className="bg-error/10 border border-error text-error px-3 py-2 rounded font-code-inline text-sm mb-4">
+                              ERROR: {errorMsg}
+                            </div>
+                          )}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <label className="block font-label-md text-label-md text-on-surface uppercase">Full Name</label>
@@ -87,10 +165,8 @@ export default function AdminTeam() {
                             <div className="space-y-2">
                               <label className="block font-label-md text-label-md text-on-surface uppercase">Department</label>
                               <select className="w-full bg-surface-container-lowest border border-outline-variant rounded px-3 py-2 text-on-surface font-code-inline focus:border-primary outline-none transition-colors appearance-none" value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })}>
-                                <option value="ENGINEERING">ENGINEERING</option>
-                                <option value="SALES">SALES</option>
-                                <option value="HR">HR</option>
-                                <option value="MARKETING">MARKETING</option>
+                                <option value="IT">IT</option>
+                                <option value="Humas">Humas</option>
                               </select>
                             </div>
                             <div className="space-y-2">
@@ -103,8 +179,11 @@ export default function AdminTeam() {
                             </div>
                           </div>
                           <div className="pt-4 flex justify-end gap-3">
-                            <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 border border-outline-variant text-on-surface-variant hover:bg-surface-variant rounded font-label-md uppercase tracking-wider transition-colors">Cancel</button>
-                            <button type="submit" className="px-4 py-2 bg-primary text-on-primary hover:bg-primary-fixed rounded font-label-md uppercase tracking-wider shadow-[0_0_10px_rgba(203,166,247,0.3)] transition-colors">Deploy User</button>
+                            <button type="button" onClick={() => setShowCreateModal(false)} className="px-4 py-2 border border-outline-variant text-on-surface-variant hover:bg-surface-variant rounded font-label-md uppercase tracking-wider transition-colors" disabled={isSubmitting}>Cancel</button>
+                            <button type="submit" className="px-4 py-2 bg-primary text-on-primary hover:bg-primary-fixed rounded font-label-md uppercase tracking-wider shadow-[0_0_10px_rgba(203,166,247,0.3)] transition-colors flex items-center gap-2" disabled={isSubmitting}>
+                              {isSubmitting ? <span className="material-symbols-outlined animate-spin text-[18px]">sync</span> : null}
+                              Deploy User
+                            </button>
                           </div>
                         </form>
                       )}
@@ -134,10 +213,8 @@ export default function AdminTeam() {
                         className="bg-transparent appearance-none pl-3 pr-8 py-1.5 text-on-surface font-code-inline text-sm focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer w-[180px]"
                       >
                         <option value="ALL">ALL DEPARTMENTS</option>
-                        <option value="ENGINEERING">ENGINEERING</option>
-                        <option value="SALES">SALES</option>
-                        <option value="HR">HR</option>
-                        <option value="MARKETING">MARKETING</option>
+                        <option value="IT">IT</option>
+                        <option value="Humas">Humas</option>
                       </select>
                       <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[16px] text-on-surface-variant pointer-events-none">expand_more</span>
                     </div>
@@ -160,7 +237,14 @@ export default function AdminTeam() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-outline-variant/50">
-                      {filteredUsers.length > 0 ? (
+                      {isLoading ? (
+                        <tr>
+                          <td colSpan="5" className="py-8 text-center text-on-surface-variant font-code-inline">
+                            <span className="material-symbols-outlined animate-spin text-[32px] mb-2 block opacity-50">sync</span>
+                            Fetching user directory...
+                          </td>
+                        </tr>
+                      ) : filteredUsers.length > 0 ? (
                         filteredUsers.map((u) => (
                           <tr key={u.id} className="hover:bg-surface-variant/50 transition-colors">
                             <td className="py-3 px-4 font-code-inline text-on-surface">{u.id}</td>
