@@ -50,40 +50,33 @@ export default function Sidebar() {
       {/* Navigation Links */}
       <nav className="flex-1 flex flex-col gap-1 px-2">
         {/* Everyone gets a Dashboard */}
-        <Link to={dashboardPath} 
-              className={`px-4 py-3 flex items-center gap-3 transition-all duration-150 ease-in-out ${isActive(dashboardPath)}`}>
+        <Link to={dashboardPath} className={`px-4 py-3 flex items-center gap-3 transition-all duration-150 ease-in-out ${isActive(dashboardPath)}`}>
           <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>dashboard</span>
           Dashboard
         </Link>
 
-        {/* Everyone gets Attendance */}
-        <Link to="/attendance" className={`px-4 py-3 flex items-center gap-3 transition-all duration-150 ease-in-out ${isActive('/attendance')}`}>
-          <span className="material-symbols-outlined">fingerprint</span>
-          Attendance
-        </Link>
-
         {/* Admin Only */}
         {role === 'super-admin' && (
-          <>
-            <Link to="/security" className={`px-4 py-3 flex items-center gap-3 transition-all duration-150 ease-in-out ${isActive('/security')}`}>
-              <span className="material-symbols-outlined">security</span>
-              Security Logs
-            </Link>
-          </>
+          <Link to="/team" className={`px-4 py-3 flex items-center gap-3 transition-all duration-150 ease-in-out ${isActive('/team')}`}>
+            <span className="material-symbols-outlined">manage_accounts</span>
+            Users Management
+          </Link>
         )}
 
-        {/* Manager & Admin */}
-        {(role === 'super-admin' || role === 'manager') && (
-          <>
-            <Link to="/team" className={`px-4 py-3 flex items-center gap-3 transition-all duration-150 ease-in-out ${isActive('/team')}`}>
-              <span className="material-symbols-outlined">group</span>
-              Team Management
-            </Link>
-            <Link to="/reports" className={`px-4 py-3 flex items-center gap-3 transition-all duration-150 ease-in-out ${isActive('/reports')}`}>
-              <span className="material-symbols-outlined">analytics</span>
-              Reports
-            </Link>
-          </>
+        {/* Manager & Employee: Attendance */}
+        {role !== 'super-admin' && (
+          <Link to="/attendance" className={`px-4 py-3 flex items-center gap-3 transition-all duration-150 ease-in-out ${isActive('/attendance')}`}>
+            <span className="material-symbols-outlined">fingerprint</span>
+            Attendance
+          </Link>
+        )}
+
+        {/* Manager Only: Team */}
+        {role === 'manager' && (
+          <Link to="/team" className={`px-4 py-3 flex items-center gap-3 transition-all duration-150 ease-in-out ${isActive('/team')}`}>
+            <span className="material-symbols-outlined">group</span>
+            Team Management
+          </Link>
         )}
       </nav>
 

@@ -32,28 +32,27 @@ export default function ManagerTeam() {
            usersList = body.employees || body.Users || body.users || [];
         }
 
-        // Map and filter for this manager's department
-        const targetDept = deptName.toLowerCase();
+        // Map the backend data
         const mappedTeam = usersList.map(u => {
           if (u.Attributes && Array.isArray(u.Attributes)) {
             const getAttr = (name) => u.Attributes.find(a => a.Name === name)?.Value || '';
             return {
-              id: getAttr('sub') || u.Username || u.id,
-              name: getAttr('name') || getAttr('email') || u.Username || 'Unknown',
+              id: getAttr('profile') || getAttr('sub') || u.id || 'Unknown',
+              name: getAttr('name') || getAttr('email') || 'Unknown',
               email: getAttr('email') || '',
-              dept: getAttr('custom:department') || 'UNASSIGNED',
+              dept: getAttr('custom:department') || deptName,
               status: u.UserStatus || 'CONFIRMED'
             };
           } else {
             return {
-              id: u.sub || u.id || u.userId || u.username || u.Username || 'Unknown',
-              name: u.name || u['custom:name'] || u.profile || u.email || 'Unknown',
+              id: u.profile || u.id || u.userId || 'Unknown',
+              name: u.name || u['custom:name'] || u.email || 'Unknown',
               email: u.email || '',
-              dept: u['custom:department'] || u.department || u.dept || 'UNASSIGNED',
+              dept: u.department || u['custom:department'] || u.dept || deptName,
               status: u.status || u.UserStatus || 'CONFIRMED'
             };
           }
-        }).filter(emp => (emp.dept || '').toLowerCase() === targetDept);
+        });
 
         setEmployees(mappedTeam);
       } catch (error) {
@@ -93,10 +92,10 @@ export default function ManagerTeam() {
                 <table className="w-full text-left font-body-sm text-body-sm border-collapse">
                   <thead>
                     <tr className="border-b border-outline-variant text-on-surface-variant font-label-md text-label-md uppercase">
-                      <th className="py-3 px-4 font-normal">User ID</th>
+                      <th className="py-3 px-4 font-normal">Profile ID</th>
                       <th className="py-3 px-4 font-normal">Name</th>
                       <th className="py-3 px-4 font-normal">Department</th>
-                      <th className="py-3 px-4 font-normal">Role</th>
+                      <th className="py-3 px-4 font-normal">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/50">
@@ -108,9 +107,9 @@ export default function ManagerTeam() {
                         </td>
                       </tr>
                     ) : employees.length > 0 ? (
-                      employees.map((emp) => (
-                        <tr key={emp.id} className="hover:bg-surface-variant/50 transition-colors">
-                          <td className="py-3 px-4 font-code-inline text-on-surface text-xs">{emp.id}</td>
+                      employees.map((emp, index) => (
+                        <tr key={emp.id || index} className="hover:bg-surface-variant/50 transition-colors">
+                          <td className="py-3 px-4 font-code-inline text-on-surface text-sm">{emp.id}</td>
                           <td className="py-3 px-4 text-on-surface font-label-md uppercase">{emp.name}</td>
                           <td className="py-3 px-4 text-on-surface-variant">{emp.dept}</td>
                           <td className="py-3 px-4">

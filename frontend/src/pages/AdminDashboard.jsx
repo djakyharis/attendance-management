@@ -1,11 +1,37 @@
+import { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import AttendanceTable from '../components/AttendanceTable';
+import apiService from '../services/apiService';
 import { useAuth } from '../hooks/useAuth';
 
 export default function AdminDashboard() {
   const { user, role, name, employeeId } = useAuth();
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const data = await apiService.manageUsers({ action: 'list' });
+        let count = 0;
+        if (Array.isArray(data)) count = data.length;
+        else if (data && Array.isArray(data.Users)) count = data.Users.length;
+        else if (data && Array.isArray(data.users)) count = data.users.length;
+        else if (data && typeof data === 'object') {
+           const body = data.body ? (typeof data.body === 'string' ? JSON.parse(data.body) : data.body) : data;
+           count = (body.Users || body.users || []).length;
+        }
+        setTotalUsers(count);
+      } catch (error) {
+        console.error('Error fetching total users:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
@@ -19,7 +45,6 @@ export default function AdminDashboard() {
               <p className="font-body-sm text-body-sm text-on-surface-variant">&gt; root_access --global-stats</p>
             </header>
             
-            {/* Top Row: Profile Panel & Stat Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter mb-gutter">
               {/* Profile Panel */}
               <div className="lg:col-span-4 flex flex-col gap-gutter">
@@ -39,41 +64,23 @@ export default function AdminDashboard() {
               </div>
 
               {/* Stat Cards */}
-              <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-gutter">
-                {/* Card 1 */}
-                <div className="bg-surface-container border border-outline-variant rounded p-6 flex flex-col justify-center">
+              <div className="lg:col-span-8 flex flex-col gap-gutter">
+                {/* Total Active Users Panel */}
+                <div className="bg-surface-container border border-outline-variant rounded p-6 flex flex-col justify-center h-full">
                   <h3 className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest flex items-center gap-2 mb-4">
                     <span className="material-symbols-outlined text-[18px]">public</span>
                     Total Active Users
                   </h3>
                   <div className="flex items-end gap-3">
-                    <p className="font-headline-lg text-[48px] leading-none font-bold text-on-surface">1,204</p>
+                    <p className="font-headline-lg text-[48px] leading-none font-bold text-on-surface">
+                      {isLoading ? <span className="material-symbols-outlined animate-spin text-[32px] opacity-50">sync</span> : totalUsers}
+                    </p>
                     <p className="font-code-inline text-sm text-on-surface-variant mb-1">Organization-wide</p>
-                  </div>
-                </div>
-
-                {/* Card 2 */}
-                <div className="bg-surface-container border border-primary/30 rounded p-6 flex flex-col justify-center">
-                  <h3 className="font-label-md text-label-md text-primary uppercase tracking-widest flex items-center gap-2 mb-4">
-                    <span className="material-symbols-outlined text-[18px]">domain_verification</span>
-                    Company Attendance
-                  </h3>
-                  <div className="flex items-end gap-3">
-                    <p className="font-headline-lg text-[48px] leading-none font-bold text-primary">89.2%</p>
-                    <p className="font-code-inline text-sm text-primary/70 mb-1">Live aggregate rate</p>
                   </div>
                 </div>
               </div>
             </div>
-              
-              <div className="mt-8">
-                <h2 className="font-headline-md text-headline-md text-primary tracking-tight mb-2 flex items-center gap-2">
-                  <span className="material-symbols-outlined">public</span>
-                  Global Verification Logs
-                </h2>
-                <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">&gt; fetch logs --scope=all_departments --limit=100</p>
-                <AttendanceTable viewMode="admin" />
-              </div>
+
             </div>
           </div>
           <Footer />

@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import apiService from '../services/apiService';
 import { useAuth } from '../hooks/useAuth';
 
 // Component to handle lazy loading of the proof image
-const AttendanceProof = ({ userId, timestamp, defaultUrl, status, photoKey, onImageClick }) => {
+const AttendanceProof = memo(({ viewMode, defaultUrl, status, photoKey, onImageClick }) => {
   const [imageUrl, setImageUrl] = useState(defaultUrl || null);
   const [loading, setLoading] = useState(!defaultUrl && status !== 'Forbidden');
   
@@ -15,10 +15,12 @@ const AttendanceProof = ({ userId, timestamp, defaultUrl, status, photoKey, onIm
         return;
       }
       try {
-        const res = await apiService.getPhotoUrl(userId, timestamp, photoKey);
+        const res = await apiService.getPhotoUrl(viewMode, photoKey);
         if (isMounted) {
-          // Assuming the response contains an 'url' or it's the direct URL string
-          setImageUrl(res?.url || res?.photoUrl || res);
+          // The backend returns { viewUrl: '...' }
+          let finalUrl = res?.viewUrl || res?.url || res?.photoUrl;
+          if (!finalUrl && typeof res === 'string') finalUrl = res;
+          setImageUrl(finalUrl || null);
         }
       } catch (err) {
         console.error('Failed to load proof image', err);
@@ -28,7 +30,7 @@ const AttendanceProof = ({ userId, timestamp, defaultUrl, status, photoKey, onIm
     };
     fetchUrl();
     return () => { isMounted = false; };
-  }, [userId, timestamp, defaultUrl, status]);
+  }, [viewMode, defaultUrl, status, photoKey]);
 
   if (status === 'Forbidden') {
     return (
@@ -63,9 +65,9 @@ const AttendanceProof = ({ userId, timestamp, defaultUrl, status, photoKey, onIm
       <span className="material-symbols-outlined text-[16px] text-outline">image</span>
     </div>
   );
-};
+});
 
-export default function AttendanceTable({ viewMode = 'employee', departmentFilter = 'ALL' }) {
+const AttendanceTable = memo(function AttendanceTable({ viewMode = 'employee', departmentFilter = 'ALL' }) {
   const { user, employeeId, name, department } = useAuth();
   const showEmployee = viewMode === 'manager' || viewMode === 'admin';
   const isAdmin = viewMode === 'admin';
@@ -79,14 +81,21 @@ export default function AttendanceTable({ viewMode = 'employee', departmentFilte
       setIsLoading(true);
       try {
         // Fetch attendance logs
-        const data = await apiService.getAttendance();
-        let fetchedLogs = Array.isArray(data) ? data : (data.items || []);
+        const data = await apiService.getAttendance(viewMode);
+        let fetchedLogs = [];
+        if (Array.isArray(data)) fetchedLogs = data;
+        else if (data && Array.isArray(data.items)) fetchedLogs = data.items;
+        else if (data && Array.isArray(data.data)) fetchedLogs = data.data;
+        else if (data && typeof data === 'object') {
+           const body = data.body ? (typeof data.body === 'string' ? JSON.parse(data.body) : data.body) : data;
+           fetchedLogs = Array.isArray(body) ? body : (body.items || body.data || []);
+        }
         
         // If we need to show employee names (Manager/Admin view), fetch the user list for joining
         let userMap = {};
         if (showEmployee) {
           try {
-            const usersData = await apiService.getEmployees();
+            const usersData = await apiService.getEmployees(viewMode);
             
             let usersList = [];
             if (Array.isArray(usersData)) {
@@ -127,23 +136,7 @@ export default function AttendanceTable({ viewMode = 'employee', departmentFilte
         }
         
         // Optional client side filtering
-        if (viewMode === 'employee') {
-          const myId1 = user?.userId;
-          const myId2 = user?.username;
-          const myId3 = employeeId;
-          const myId4 = name;
-          
-          fetchedLogs = fetchedLogs.filter(log => {
-            const logId = log.userId || log.user || log.username;
-            return logId === myId1 || logId === myId2 || logId === myId3 || logId === myId4;
-          });
-        } else if (viewMode === 'manager') {
-          const userDept = (department || '').toLowerCase();
-          fetchedLogs = fetchedLogs.filter(log => {
-            const logDept = (log.dept || log.department || '').toLowerCase();
-            return logDept === userDept;
-          });
-        } else if (isAdmin && departmentFilter !== 'ALL') {
+        if (isAdmin && departmentFilter !== 'ALL') {
           const filterDept = (departmentFilter || '').toLowerCase();
           fetchedLogs = fetchedLogs.filter(log => {
             const logDept = (log.dept || log.department || '').toLowerCase();
@@ -181,8 +174,13 @@ export default function AttendanceTable({ viewMode = 'employee', departmentFilte
             userId: log.userId || ''
           };
         });
+        const sortedLogs = mappedLogs.sort((a, b) => {
+          const timeA = new Date(a.originalTime || 0).getTime();
+          const timeB = new Date(b.originalTime || 0).getTime();
+          return timeB - timeA; // Descending (newest first)
+        });
         
-        setLogs(mappedLogs);
+        setLogs(sortedLogs);
       } catch (error) {
         console.error('Failed to fetch attendance logs:', error);
       } finally {
@@ -191,6 +189,9 @@ export default function AttendanceTable({ viewMode = 'employee', departmentFilte
     };
     
     fetchLogs();
+
+    window.addEventListener('attendance_updated', fetchLogs);
+    return () => window.removeEventListener('attendance_updated', fetchLogs);
   }, [departmentFilter, isAdmin, viewMode, employeeId, user?.userId, name, department]);
 
   return (
@@ -236,8 +237,7 @@ export default function AttendanceTable({ viewMode = 'employee', departmentFilte
                 )}
                 <td className="py-3 px-4">
                   <AttendanceProof 
-                    userId={log.userId} 
-                    timestamp={log.originalTime} 
+                    viewMode={viewMode}
                     defaultUrl={log.proofUrl} 
                     status={log.status} 
                     photoKey={log.photoKey} 
@@ -286,4 +286,6 @@ export default function AttendanceTable({ viewMode = 'employee', departmentFilte
       )}
     </div>
   );
-}
+});
+
+export default AttendanceTable;

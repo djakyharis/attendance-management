@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signIn, confirmSignIn } from 'aws-amplify/auth';
+import { AuthenticationDetails, CognitoUser } from 'amazon-cognito-identity-js';
+import { userPool } from '../utils/cognitoConfig';
 import { useAuth } from '../hooks/useAuth';
 
 export default function Login() {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshAuth } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,53 +23,67 @@ export default function Login() {
   const [isNewPasswordRequired, setIsNewPasswordRequired] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [newPasswordFocus, setNewPasswordFocus] = useState(false);
+  
+  const [cognitoUser, setCognitoUser] = useState(null);
 
-  const handleLogin = async (e) => {
+  const handleLogin = (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
     
-    try {
-      const { isSignedIn, nextStep } = await signIn({
-        username: email,
-        password,
-      });
+    const authenticationDetails = new AuthenticationDetails({
+      Username: email,
+      Password: password,
+    });
 
-      if (isSignedIn) {
+    const userData = {
+      Username: email,
+      Pool: userPool,
+    };
+    
+    const cognitoUserInstance = new CognitoUser(userData);
+    setCognitoUser(cognitoUserInstance);
+
+    cognitoUserInstance.authenticateUser(authenticationDetails, {
+      onSuccess: (result) => {
+        setIsLoading(false);
+        refreshAuth();
         navigate('/dashboard');
-      } else if (nextStep.signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD') {
+      },
+      onFailure: (err) => {
+        setIsLoading(false);
+        console.error('Error signing in:', err);
+        setError(`ERR: ${err.message || 'Authentication failed.'}`);
+      },
+      newPasswordRequired: (userAttributes, requiredAttributes) => {
+        setIsLoading(false);
         setIsNewPasswordRequired(true);
-      } else {
-        setError(`ERR: Additional step required: ${nextStep.signInStep}`);
       }
-    } catch (err) {
-      console.error('Error signing in:', err);
-      setError(`ERR: ${err.message || 'Authentication failed.'}`);
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
-  const handleNewPasswordSubmit = async (e) => {
+  const handleNewPasswordSubmit = (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    try {
-      const { isSignedIn, nextStep } = await confirmSignIn({
-        challengeResponse: newPassword
+    if (cognitoUser) {
+      cognitoUser.completeNewPasswordChallenge(newPassword, {}, {
+        onSuccess: (result) => {
+          setIsLoading(false);
+          refreshAuth();
+          navigate('/dashboard');
+        },
+        onFailure: (err) => {
+          setIsLoading(false);
+          console.error('Error confirming new password:', err);
+          setError(`ERR: ${err.message || 'Password update failed.'}`);
+        }
       });
-
-      if (isSignedIn) {
-        navigate('/dashboard');
-      } else {
-        setError(`ERR: Additional step required: ${nextStep.signInStep}`);
-      }
-    } catch (err) {
-      console.error('Error confirming new password:', err);
-      setError(`ERR: ${err.message || 'Password update failed.'}`);
-    } finally {
+    } else {
       setIsLoading(false);
+      setError('ERR: Session lost. Please login again.');
+      setIsNewPasswordRequired(false);
     }
   };
 

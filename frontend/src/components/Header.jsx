@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { signOut } from 'aws-amplify/auth';
 
 export default function Header() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [time, setTime] = useState(new Date());
   const navigate = useNavigate();
-  const { user, department, name, employeeId } = useAuth();
+  const { user, department, name, employeeId, logout } = useAuth();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -17,13 +15,9 @@ export default function Header() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      navigate('/login');
-    } catch (error) {
-      console.error('Error signing out: ', error);
-    }
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   const hours = time.getHours().toString().padStart(2, '0');
@@ -45,64 +39,7 @@ export default function Header() {
         </div>
       </div>
       <div className="flex items-center gap-6">
-        {/* Notifications Dropdown */}
-        <div className="relative">
-          <button 
-            className="relative p-2 rounded hover:bg-surface-variant transition-colors text-primary flex items-center justify-center group cursor-pointer"
-            onClick={() => {
-              setShowNotifications(!showNotifications);
-              setShowProfileMenu(false);
-            }}
-          >
-            <span className="material-symbols-outlined text-[24px]">notifications</span>
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full border border-surface"></span>
-          </button>
-
-          {showNotifications && (
-            <div className="absolute top-12 right-[-80px] sm:right-0 w-[300px] sm:w-[350px] bg-surface-container-high border border-outline-variant rounded shadow-[0_0_15px_rgba(0,0,0,0.5)] z-50 overflow-hidden">
-              <div className="p-3 border-b border-outline-variant flex justify-between items-center bg-surface-container-highest">
-                <p className="font-label-md text-label-md text-on-surface uppercase tracking-widest flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px]">notifications_active</span>
-                  Alerts
-                </p>
-                <span className="text-[10px] bg-error text-on-error px-2 py-0.5 rounded font-bold">2 NEW</span>
-              </div>
-              <div className="max-h-[300px] overflow-y-auto">
-                {/* Mock Notification 1: Missed Attendance */}
-                <div className="p-4 border-b border-outline-variant/50 hover:bg-surface-variant/30 transition-colors cursor-pointer border-l-2 border-l-error">
-                  <div className="flex justify-between items-start mb-1">
-                    <p className="font-label-md text-label-md text-error uppercase">Missed Attendance</p>
-                    <span className="text-[10px] text-on-surface-variant font-code-inline">09:15 AM</span>
-                  </div>
-                  <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-                    You missed the mandatory check-in window for today. Please contact your manager to log a manual entry.
-                  </p>
-                </div>
-                
-                {/* Mock Notification 2: Login Alert */}
-                <div className="p-4 hover:bg-surface-variant/30 transition-colors cursor-pointer border-l-2 border-l-primary">
-                  <div className="flex justify-between items-start mb-1">
-                    <p className="font-label-md text-label-md text-primary uppercase">Security Log</p>
-                    <span className="text-[10px] text-on-surface-variant font-code-inline">08:02 AM</span>
-                  </div>
-                  <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-                    New session detected. Login from IP 192.168.1.55 on Mac OS.
-                  </p>
-                </div>
-              </div>
-              <div className="p-2 border-t border-outline-variant text-center bg-surface-container-highest">
-                <button 
-                  className="font-code-inline text-[10px] text-primary hover:text-primary-fixed uppercase tracking-widest cursor-pointer"
-                  onClick={() => setShowNotifications(false)}
-                >
-                  [ CLEAR ALL & CLOSE ]
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-3 border-l border-outline-variant pl-6 relative">
+        <div className="flex items-center gap-3 relative">
           <div className="text-right hidden sm:block">
             <p className="font-code-inline text-code-inline text-primary leading-none mb-1">{name ? name.toUpperCase() : user?.username ? user.username.toUpperCase() : 'JOHN DOE'}</p>
             <p className="text-[10px] uppercase tracking-widest text-secondary flex items-center justify-end gap-1">
@@ -113,7 +50,6 @@ export default function Header() {
             className="w-10 h-10 rounded bg-surface-container-highest border border-outline-variant flex items-center justify-center overflow-hidden hover:border-primary transition-colors cursor-pointer"
             onClick={() => {
               setShowProfileMenu(!showProfileMenu);
-              setShowNotifications(false);
             }}
           >
             <span className="material-symbols-outlined text-primary">account_circle</span>

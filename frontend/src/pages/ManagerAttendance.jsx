@@ -24,11 +24,6 @@ export default function ManagerAttendance() {
                 Today's Department Log
               </h3>
               <AttendanceTable viewMode="manager" />
-              
-              <div className="mt-4 p-4 border border-tertiary/20 bg-tertiary/5 text-sm text-tertiary font-code-inline flex items-center gap-2">
-                <span className="material-symbols-outlined">info</span>
-                Manager feature: "Review Photo" button will be integrated per row once backend supplies presigned URLs.
-              </div>
               </div>
             </div>
           </div>

@@ -25,8 +25,17 @@ export default function CameraScanner() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error("SECURE_CONTEXT_REQUIRED");
       }
+      
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      
       if (isMounted.current && videoRef.current) {
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+        }
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         setStreamActive(true);
@@ -92,9 +101,16 @@ export default function CameraScanner() {
 
       // 1. Get pre-signed URL from API Gateway
       const uploadUrlResponse = await apiService.getUploadUrl();
-      const uploadUrl = uploadUrlResponse.uploadUrl || uploadUrlResponse;
-      // Backend explicitly sends 'fileName' as the key
-      const returnedPhotoKey = uploadUrlResponse.fileName || uploadUrlResponse.photoKey || uploadUrlResponse.key;
+      
+      // Robustly extract from potentially nested structures like { data: { uploadUrl: ... } }
+      const resData = uploadUrlResponse?.data || uploadUrlResponse?.body || uploadUrlResponse;
+      const uploadUrl = resData?.uploadUrl || resData?.url || (typeof resData === 'string' ? resData : null);
+      const returnedPhotoKey = resData?.photoKey || resData?.key || resData?.fileName || null;
+
+      if (!uploadUrl || !returnedPhotoKey) {
+        console.error("Invalid response from /employee/upload-url:", uploadUrlResponse);
+        throw new Error("Gagal mendapatkan URL unggahan atau Photo Key dari server.");
+      }
 
       // 2. Upload image to S3 directly via pre-signed URL
       await apiService.uploadToS3(uploadUrl, imageBlob);
@@ -109,7 +125,19 @@ export default function CameraScanner() {
         photoKey: returnedPhotoKey,
         action: "checkin"
       };
-      await apiService.postPresence(presenceData);
+      
+      try {
+        await apiService.postPresence(presenceData);
+      } catch (err) {
+        if (err.response && err.response.status === 400) {
+          console.error("400 Bad Request payload sent:", presenceData);
+          console.error("Backend validation error details:", err.response.data);
+          throw new Error(`Server menolak data (400 Bad Request): ${JSON.stringify(err.response.data.message || err.response.data)}`);
+        }
+        throw err;
+      }
+      
+      window.dispatchEvent(new Event('attendance_updated'));
 
       setIsCheckedIn(true);
       // Automatically stop camera after successful check-in

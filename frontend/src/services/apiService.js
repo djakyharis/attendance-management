@@ -2,19 +2,26 @@ import api from '../utils/api';
 import axios from 'axios';
 
 const apiService = {
+
   manageUsers: async (data) => {
-    // data should contain { action: 'list' } or { action: 'create', ... }
-    const response = await api.post('/manage-users', data);
-    return response.data;
+    if (data.action === 'list') {
+      const response = await api.get('/admin/list');
+      return response.data;
+    } else if (['create', 'update', 'delete'].includes(data.action)) {
+      // Send the payload directly to the backend for processing
+      const response = await api.post('/admin/users', data);
+      return response.data;
+    }
   },
 
-  getEmployees: async () => {
-    const response = await api.get('/employees');
+  getEmployees: async (role = 'manager') => {
+    const path = role === 'admin' ? '/admin/list' : '/manager/team';
+    const response = await api.get(path);
     return response.data;
   },
 
   getUploadUrl: async () => {
-    const response = await api.get('/upload-url-photo');
+    const response = await api.get('/employee/upload-url');
     return response.data;
   },
 
@@ -29,18 +36,21 @@ const apiService = {
   },
 
   postPresence: async (data = {}) => {
-    const response = await api.post('/checkin', data);
+    // Pass the entire data payload since backend still requires user data despite documentation
+    const response = await api.post('/employee/checkin', data);
     return response.data;
   },
 
-  getAttendance: async () => {
-    const response = await api.get('/attendance');
+  getAttendance: async (role = 'employee', date) => {
+    const params = date ? { date } : {};
+    const response = await api.get(`/${role}/attendance`, { params });
     return response.data;
   },
 
-  getPhotoUrl: async (userId, timestamp, photoKey) => {
-    const response = await api.get('/attendance/photo', {
-      params: { userId, timestamp, photoKey },
+  getPhotoUrl: async (role = 'employee', photoKey) => {
+    if (!photoKey) return null;
+    const response = await api.get(`/${role}/photo`, {
+      params: { photoKey },
     });
     return response.data;
   },

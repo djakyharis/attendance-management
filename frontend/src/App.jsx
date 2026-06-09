@@ -30,7 +30,7 @@ function AttendanceRouter() {
   const { user, role, loading } = useAuth();
   if (loading) return <PageLoader />;
   if (!user) return <Navigate to="/login" replace />;
-  if (role === 'super-admin') return <AdminAttendance />;
+  if (role === 'super-admin') return <Navigate to="/team" replace />;
   if (role === 'manager') return <ManagerAttendance />;
   return <EmployeeAttendance />;
 }
@@ -51,9 +51,7 @@ function ReportsRouter() {
   const { user, role, loading } = useAuth();
   if (loading) return <PageLoader />;
   if (!user) return <Navigate to="/login" replace />;
-  if (role === 'super-admin') return <AdminReports />;
-  if (role === 'manager') return <ManagerReports />;
-  // Fallback to employee (hidden, so redirect to dashboard)
+  // Super-admin features trimmed, reports no longer available
   return <Navigate to="/dashboard" replace />;
 }
 
@@ -72,7 +70,6 @@ function SecurityRouter() {
   const { user, role, loading } = useAuth();
   if (loading) return <PageLoader />;
   if (!user) return <Navigate to="/login" replace />;
-  if (role === 'super-admin') return <AdminSecurity />;
   return <Navigate to="/dashboard" replace />;
 }
 

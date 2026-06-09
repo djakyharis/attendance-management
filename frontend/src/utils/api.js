@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { fetchAuthSession } from 'aws-amplify/auth';
+import { userPool } from './cognitoConfig';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -9,17 +9,28 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(
-  async (config) => {
-    try {
-      const session = await fetchAuthSession();
-      const token = session.tokens?.idToken?.toString();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+  (config) => {
+    return new Promise((resolve) => {
+      const currentUser = userPool.getCurrentUser();
+      
+      if (currentUser) {
+        currentUser.getSession((err, session) => {
+          if (err || !session.isValid()) {
+            console.warn('No active auth session for API request');
+            resolve(config);
+          } else {
+            const token = session.getIdToken().getJwtToken();
+            if (token) {
+              config.headers.Authorization = `Bearer ${token}`;
+            }
+            resolve(config);
+          }
+        });
+      } else {
+        console.warn('No active auth session for API request');
+        resolve(config);
       }
-    } catch (error) {
-      console.warn('No active auth session for API request');
-    }
-    return config;
+    });
   },
   (error) => Promise.reject(error)
 );
